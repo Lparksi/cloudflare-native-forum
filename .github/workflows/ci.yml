@@ -6,7 +6,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       CI: 'true'
@@ -36,8 +36,20 @@ jobs:
       - run: pnpm check:secrets
       - run: pnpm build
       - run: pnpm db:migrate && pnpm db:seed
-      - run: pnpm exec playwright install --with-deps chromium
+      - name: Use Ubuntu HTTPS archives for browser dependencies
+        run: |
+          # The hosted image already provides these official HTTPS fallbacks.
+          # Azure HTTP downloads stalled in runs 40315150783 and 40311464423.
+          grep -Fx 'URIs: mirror+file:/etc/apt/apt-mirrors.txt' /etc/apt/sources.list.d/ubuntu.sources
+          grep -q '^https://archive\.ubuntu\.com/ubuntu/' /etc/apt/apt-mirrors.txt
+          sudo sed -i '\|^http://azure\.archive\.ubuntu\.com/ubuntu/|d' /etc/apt/apt-mirrors.txt
+          cat /etc/apt/apt-mirrors.txt
+          printf '%s\n' 'Acquire::Retries "2";' 'Acquire::http::Timeout "30";' 'Acquire::https::Timeout "30";' | sudo tee /etc/apt/apt.conf.d/80-ci-downloads
+      - name: Install Chromium and system dependencies
+        timeout-minutes: 5
+        run: pnpm exec playwright install --with-deps chromium
       - name: Install licensed CJK screenshot font
+        timeout-minutes: 3
         run: |
           sudo apt-get install -y --no-install-recommends fonts-noto-cjk
           dpkg-query -W -f='${Package} ${Version}\n' fonts-noto-cjk
