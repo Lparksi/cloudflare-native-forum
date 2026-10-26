@@ -58,6 +58,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: license-reports
+          # Only the five explicitly listed files below; .cache is hidden.
+          include-hidden-files: true
           path: |
             .cache/license/reports/scancode.json
             .cache/license/reports/sbom.spdx.json
