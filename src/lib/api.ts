@@ -1,4 +1,6 @@
 import { Hono } from 'hono';
+import { getSession } from '../auth/server';
+import { localMailboxAllowed, localMessages } from '../auth/mail';
 import { bodyLimit } from 'hono/body-limit';
 import { repository } from '../db/repository';
 import { localWriteAllowed, parseCursor, topicInput } from './contracts';
@@ -60,7 +62,12 @@ api.post(
         ),
         400,
       );
-    const result = await repository(c.env.DB).create(input.data);
+    const session = await getSession(c.env, c.req.raw);
+    if (!session || !session.user.emailVerified)
+      return c.json(error('UNAUTHORIZED', '请先验证邮箱并登录'), 401);
+    const repo = repository(c.env.DB);
+    const profile = await repo.profileForUser(session.user);
+    const result = await repo.create(input.data, profile.id);
     if (result.kind === 'invalid-node')
       return c.json(error('INVALID_NODE', '节点不存在或已隐藏'), 400);
     if (result.kind === 'conflict')
@@ -71,6 +78,11 @@ api.post(
     return c.json({ data: { id: result.id } }, result.created ? 201 : 200);
   },
 );
+api.get('/dev/mail', async (c) => {
+  if (!localMailboxAllowed(c.env, c.req.url))
+    return c.json(error('NOT_FOUND', '不存在'), 404);
+  return c.json({ data: await localMessages(c.env, c.req.query('email')) });
+});
 api.notFound((c) => c.json(error('NOT_FOUND', 'API 不存在'), 404));
 api.onError((err, c) => {
   console.error(JSON.stringify({ event: 'api_error', name: err.name }));

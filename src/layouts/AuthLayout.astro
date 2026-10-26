@@ -1,0 +1,34 @@
+---
+import { env } from 'cloudflare:workers';
+import Layout from './Layout.astro';
+import { localMailboxAllowed } from '../auth/mail';
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+---
+
+<Layout title={title}>
+  <div class="narrow auth-shell">
+    <section class="panel padded">
+      <div class="eyebrow">YOUR PLACE IN THE COMMONS</div>
+      <h1>{title}</h1>
+      <slot />
+      <nav class="auth-links" aria-label="账户导航">
+        <a href="/login">登录</a>
+        <a href="/register">注册</a>
+        <a href="/forgot-password">忘记密码</a>
+        <a href="/verify-email">重发验证</a>
+      </nav>
+      {localMailboxAllowed(env, Astro.url.href) && (
+        <p class="stage-note">
+          本地邮件不会真实发送。
+          <a class="text-link" href="/dev/mail">
+            打开开发收件箱 →
+          </a>
+        </p>
+      )}
+    </section>
+  </div>
+</Layout>

@@ -2,13 +2,13 @@
 
 ## 已存在的配置
 
-| 环境       | Worker 名称                        | D1                         | APP_ENV    | 写入                    |
-| ---------- | ---------------------------------- | -------------------------- | ---------- | ----------------------- |
-| Local      | cloudflare-native-forum-local      | 本机 .wrangler/state/v3/d1 | local      | 仅 loopback + 同源 JSON |
-| Test       | cloudflare-native-forum-test       | 独立占位 ID，未创建        | test       | 403                     |
-| Production | cloudflare-native-forum-production | 独立占位 ID，未创建        | production | 403                     |
+| 环境       | Worker 名称                        | D1                         | APP_ENV    | 写入                                  |
+| ---------- | ---------------------------------- | -------------------------- | ---------- | ------------------------------------- |
+| Local      | cloudflare-native-forum-local      | 本机 .wrangler/state/v3/d1 | local      | loopback + 同源 JSON + 已验证 Session |
+| Test       | cloudflare-native-forum-test       | 独立占位 ID，未创建        | test       | 403                                   |
+| Production | cloudflare-native-forum-production | 独立占位 ID，未创建        | production | 403                                   |
 
-`workers_dev=false`、`preview_urls=false`，未绑定域名；占位 ID 不应被当成真实资源。请勿把根 Local 配置部署到 Cloudflare。不同环境绝不共用 D1、R2、Secrets。当前不需要 R2/KV/邮件/Turnstile，也没有远端访问或费用。
+`workers_dev=false`、`preview_urls=false`，未绑定域名；占位 ID 不应被当成真实资源。请勿把根 Local 配置部署到 Cloudflare。不同环境绝不共用 D1、R2、Secrets。当前无 R2/KV/Turnstile 或远端资源访问。认证需要本地随机 Secret 和开发收件箱；AUTH_EMAIL 绑定已声明但尚未配置真实投递，Test/Production 的 AUTH_MAIL_MODE 默认 disabled。详见 [认证配置](auth.md)。
 
 ## 数据库迁移
 
@@ -25,14 +25,14 @@ pnpm db:seed
 1. 经项目所有者确认账号、资源和成本，手工创建独立的 Test D1；将真实 ID 写入 env.test。不要用本机 UUID 自动创建。
 2. 在未部署/无数据环境验证迁移。已有数据先备份，再查看 pending migrations。
 3. 使用 CLOUDFLARE_ENV=test 构建，确保构建产物配置的名称、APP_ENV、DB ID 均指向 Test；核对 `dist/server/wrangler.json`（以适配器实际输出为准）。
-4. 显式使用 `--env test` 应用远端迁移。禁止对远端执行 db/seed.sql。认证上线前公共写入维持关闭。
+4. 显式使用 `--env test` 应用远端迁移。禁止对远端执行 db/seed.sql。正式权限、Turnstile 与业务限流落地前公共写入维持关闭。
 5. 检查类型、测试、许可、Secret、构建元信息和 dry-run 产物。仅在授权环境发布，之后验证读取、404、Footer SHA、计时和数据库隔离。
 
 真实远端命令必须在资源 ID 确认后按当前 Wrangler 文档执行；此文档不含可误执行的默认部署脚本。
 
 ## Production
 
-本轮没有 Production 授权，**不得部署**。未来上线至少要求正式认证、邮箱投递、角色与所有权校验、Turnstile、限流、审核、Cookie/CSRF 安全、备份恢复演练、测试与生产资源隔离通过验收。不要将本机作者 ID 或本机模式作为公开账户体系。
+本轮没有 Production 授权，**不得部署**。本地正式认证流程已实现；未来上线仍至少要求真实邮箱投递、角色与所有权校验、Turnstile、限流、审核、Cookie/CSRF 安全、备份恢复演练、测试与生产资源隔离通过验收。不要将本机作者 ID 或本机模式作为公开账户体系。
 
 生产流水线不得自动重置数据库；迁移和发布应经过显式审批，不自动合并 PR，不改变仓库公开性。
 

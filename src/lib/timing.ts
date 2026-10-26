@@ -9,7 +9,7 @@ export async function measuredResponse(
 ) {
   const headers = new Headers(response.headers);
   headers.set('X-Content-Type-Options', 'nosniff');
-  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  headers.set('Referrer-Policy', 'no-referrer');
   headers.set('X-Frame-Options', 'DENY');
   headers.set('Cache-Control', 'private, no-store');
   const html = headers.get('content-type')?.includes('text/html');

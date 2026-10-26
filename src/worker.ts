@@ -1,4 +1,5 @@
 import { handle } from '@astrojs/cloudflare/handler';
+import { authRoutes } from './auth/handler';
 import { api } from './lib/api';
 import { measuredResponse } from './lib/timing';
 
@@ -6,9 +7,13 @@ export default {
   async fetch(request, env, ctx) {
     const startedAt = performance.now();
     try {
-      const response = new URL(request.url).pathname.startsWith('/api/')
-        ? await api.fetch(request, env, ctx)
-        : await handle(request, env, ctx);
+      const path = new URL(request.url).pathname;
+      const response =
+        path === '/api/auth' || path.startsWith('/api/auth/')
+          ? await authRoutes.fetch(request, env, ctx)
+          : path.startsWith('/api/')
+            ? await api.fetch(request, env, ctx)
+            : await handle(request, env, ctx);
       return await measuredResponse(response, startedAt);
     } catch (error) {
       console.error(

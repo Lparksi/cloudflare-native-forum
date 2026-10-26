@@ -3,8 +3,11 @@ import { env } from 'cloudflare:workers';
 import Layout from '../layouts/Layout.astro';
 import TopicComposer from '../components/TopicComposer';
 import { repository } from '../db/repository';
+import { getSession } from '../auth/server';
 import { localWriteAllowed } from '../lib/contracts';
 const allowed = localWriteAllowed(env.APP_ENV, Astro.url.href);
+const session = allowed ? await getSession(env, Astro.request) : null;
+if (allowed && !session) return Astro.redirect('/login');
 const nodes = allowed ? await repository(env.DB).nodes() : [];
 if (!allowed) Astro.response.status = 403;
 ---

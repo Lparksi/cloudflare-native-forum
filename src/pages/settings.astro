@@ -1,0 +1,29 @@
+---
+import { env } from 'cloudflare:workers';
+import Layout from '../layouts/Layout.astro';
+import SignOut from '../components/SignOut';
+import { getSession } from '../auth/server';
+const session = await getSession(env, Astro.request);
+if (!session) return Astro.redirect('/login');
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+---
+
+<Layout title="我的账户">
+  <div class="narrow">
+    <section class="panel padded">
+      <div class="eyebrow">MY ACCOUNT</div>
+      <h1>我的账户</h1>
+      <dl class="account-details">
+        <dt>显示名称</dt>
+        <dd>{session.user.name}</dd>
+        <dt>邮箱</dt>
+        <dd>{session.user.email}</dd>
+        <dt>邮箱状态</dt>
+        <dd>{session.user.emailVerified ? '已验证' : '未验证'}</dd>
+        <dt>会话有效期</dt>
+        <dd>{session.session.expiresAt.toISOString()}</dd>
+      </dl>
+      <SignOut client:load />
+    </section>
+  </div>
+</Layout>

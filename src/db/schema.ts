@@ -8,9 +8,15 @@ import {
   check,
 } from 'drizzle-orm/sqlite-core';
 
-// Public identity only. Authentication tables will be generated from Better Auth in Phase 2.
+import { user } from './auth-schema';
+export * from './auth-schema';
+
+// Nullable for pre-auth legacy authors; new members link to their auth identity.
 export const profiles = sqliteTable('profiles', {
   id: text('id').primaryKey(),
+  userId: text('user_id')
+    .unique()
+    .references(() => user.id),
   username: text('username').notNull().unique(),
   displayName: text('display_name').notNull(),
   bio: text('bio').notNull().default(''),
@@ -65,5 +71,22 @@ export const topics = sqliteTable(
     ),
     check('topics_title_length', sql`length(${t.title}) BETWEEN 3 AND 120`),
     check('topics_body_length', sql`length(${t.body}) BETWEEN 1 AND 20000`),
+  ],
+);
+
+// Tokens in this table are exclusively for the loopback-only development mailbox.
+export const devMail = sqliteTable(
+  'dev_mail',
+  {
+    id: text('id').primaryKey(),
+    to: text('recipient').notNull(),
+    kind: text('kind', { enum: ['verification', 'reset'] }).notNull(),
+    url: text('url').notNull(),
+    createdAt: integer('created_at').notNull(),
+    expiresAt: integer('expires_at').notNull(),
+  },
+  (t) => [
+    index('dev_mail_expiry').on(t.expiresAt),
+    index('dev_mail_recipient_created').on(t.to, t.createdAt),
   ],
 );

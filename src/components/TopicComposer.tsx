@@ -72,7 +72,7 @@ export default function TopicComposer({ nodes }: { nodes: NodeOption[] }) {
         />
       </label>
       <p className="muted">
-        以「本地开发者」发布，仅用于本机数据库验证。暂不支持 Markdown。
+        以当前已登录账户发布。本阶段仅开放本机写入，暂不支持 Markdown。
       </p>
       {error && (
         <p role="alert" className="error">

@@ -1,5 +1,8 @@
 ---
 import '../styles/global.css';
+import { env } from 'cloudflare:workers';
+import { getSession } from '../auth/server';
+const session = await getSession(env, Astro.request);
 import ThemeToggle from '../components/ThemeToggle';
 import { buildInfo } from '../lib/build-info';
 interface Props {
@@ -52,6 +55,9 @@ const commitUrl =
           <a href="/about">关于</a>
         </nav>
         <ThemeToggle client:load />
+        <a class="account-link" href={session ? '/settings' : '/login'}>
+          {session ? '我的账户' : '登录'}
+        </a>
       </div>
     </header>
     <main id="main" class="shell">

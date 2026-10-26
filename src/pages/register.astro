@@ -1,0 +1,9 @@
+---
+import AuthLayout from '../layouts/AuthLayout.astro';
+import AuthForm from '../components/AuthForm';
+---
+
+<AuthLayout title="注册">
+  <p class="muted">验证邮箱后即可登录。</p>
+  <AuthForm mode="register" client:load />
+</AuthLayout>

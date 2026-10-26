@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { registerAndLogin } from './auth-helpers';
 import { resolveBuildInfo } from '../../scripts/build-info.mjs';
+
+test.beforeEach(async ({ context }) => {
+  await context.setExtraHTTPHeaders({
+    'cf-connecting-ip': `192.0.2.${Math.floor(Math.random() * 200) + 1}`,
+  });
+});
 
 test('create, persist, render safely and browse a topic', async ({ page }) => {
   const response = await page.goto('/');
@@ -15,6 +22,9 @@ test('create, persist, render safely and browse a topic', async ({ page }) => {
     `Server ${duration}ms`,
   );
   await page.getByRole('link', { name: '＋ 发起讨论' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await registerAndLogin(page);
+  await page.goto('/new');
   const title = `端到端讨论 ${crypto.randomUUID().slice(0, 8)}`;
   await page.getByLabel('主题标题').fill(title);
   await page

@@ -22,6 +22,7 @@ jobs:
           node-version: '24'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm auth:setup
       - run: pnpm cf:types
       - run: git diff --exit-code worker-configuration.d.ts
       - run: pnpm typecheck

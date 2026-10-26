@@ -1,0 +1,9 @@
+---
+import AuthLayout from '../layouts/AuthLayout.astro';
+import AuthForm from '../components/AuthForm';
+---
+
+<AuthLayout title="验证邮箱">
+  <p class="muted">输入邮箱以重新发送验证邮件。验证链接 1 小时内有效。</p>
+  <AuthForm mode="resend" client:load />
+</AuthLayout>

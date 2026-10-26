@@ -8,7 +8,9 @@
 - API 使用 `/api/v1`，成功 `{ data }`，失败 `{ error: { code, message } }`。不将数据库错误或内部路径返回客户端。
 - 数据访问集中在 `src/db/repository.ts`；用参数化查询、外键、唯一约束和游标分页。D1 多步原子写使用 batch，不能假设支持交互式事务。
 - Schema 在 `src/db/schema.ts`；使用 `pnpm db:generate` 生成并提交版本化迁移。不得修改已应用迁移，生产不得重置。迁移前备份、检查计划并验证恢复。
-- 当前没有正式认证。写入仅允许 APP_ENV=local + loopback URL + 精确 Origin；不得把此开发身份作为公开认证。Test/Production 必须保持拒绝写入，直到 Better Auth、权限、Turnstile 和限流落地。
+- 认证使用 Better Auth + Drizzle D1，版本和 Schema 由固定 CLI 生成，详见 docs/auth.md。业务写入仅允许 APP_ENV=local + loopback URL + 精确 Origin，并要求已验证邮箱的真实 Session；旧开发作者不是登录身份。Test/Production 业务写入继续关闭，直到权限、Turnstile 和业务限流落地。
+- 本地邮件只进受 loopback、APP_ENV 与精确原点限制的开发收件箱；Test/Production 默认 AUTH_MAIL_MODE=disabled。不得将本地收件箱、.dev.vars 或 dist/server/.dev.vars 对外发布。真实邮件需事先配置域名/Secret，不能用日志输出验证或重置 token。
+- D1 认证 adapter 显式 transaction:false，不声称多步事务可回滚。密码重置单次消费、旧 Session 撤销和失败行为必须测试；不要自行实现密码哈希或 Session 协议。
 - 公开内容输出必须转义；Markdown 上线前采用安全渲染。权限、文件上传、用户数据和并发写入需要针对性测试。
 - 不启用公共页面缓存，直到有明确缓存键、用户隔离和 Footer 耗时处理。静态资源可以缓存。
 - `package.json` 是版本号唯一来源。构建 SHA 来自 GITHUB_SHA 或构建时 Git；无 Git 显示 dev。前后端使用同一次构建元信息。可选公开仓库地址才能生成 Commit 链接。

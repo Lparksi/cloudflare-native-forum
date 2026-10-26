@@ -1,15 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { Miniflare } from 'miniflare';
-import { readFileSync, readdirSync } from 'node:fs';
+import { setupDatabase, registerVerified } from './auth-helpers';
 import { api } from '../src/lib/api';
 
-const mf = new Miniflare({
-  modules: true,
-  script: 'export default { fetch() { return new Response("ok") } }',
-  compatibilityDate: '2026-07-30',
-  d1Databases: ['DB'],
-});
+let mf: Miniflare;
 let env: Env;
+let cookie: string;
 function create(
   overrides: Record<string, unknown> = {},
   mode: Env['APP_ENV'] = 'local',
@@ -22,6 +18,7 @@ function create(
       headers: {
         'Content-Type': 'application/json',
         Origin: 'http://localhost',
+        Cookie: cookie,
         ...headers,
       },
       body: JSON.stringify({
@@ -36,20 +33,8 @@ function create(
   );
 }
 beforeAll(async () => {
-  env = { DB: await mf.getD1Database('DB'), APP_ENV: 'local' };
-  for (const file of readdirSync('db/migrations')
-    .filter((file) => file.endsWith('.sql'))
-    .sort()) {
-    for (const statement of readFileSync(`db/migrations/${file}`, 'utf8').split(
-      '--> statement-breakpoint',
-    )) {
-      if (statement.trim()) await env.DB.prepare(statement).run();
-    }
-  }
-  // seed.sql contains multiple statements; D1 exec is line based.
-  const seed = readFileSync('db/seed.sql', 'utf8').replace(/^--.*$/gm, '');
-  for (const statement of seed.split(';').filter((s) => s.trim()))
-    await env.DB.prepare(statement).run();
+  ({ mf, env } = await setupDatabase());
+  ({ cookie } = await registerVerified(env));
 });
 beforeEach(async () => {
   await env.DB.prepare('DELETE FROM topics').run();
@@ -72,7 +57,7 @@ describe('local D1 topic API', () => {
       data: {
         title: '测试主题',
         body: '<script>alert(1)</script>',
-        author: '本地开发者',
+        author: '测试成员',
       },
     });
     expect(
@@ -100,6 +85,9 @@ describe('local D1 topic API', () => {
     ).toBe(1);
     expect((await create({ requestId, title: '另一主题' })).status).toBe(409);
   });
+  it('rejects unauthenticated topic writes', async () => {
+    expect((await create({}, 'local', { Cookie: '' })).status).toBe(401);
+  });
   it('closes writes outside local mode and rejects cross-site requests', async () => {
     expect((await create({}, 'test')).status).toBe(403);
     expect((await create({}, 'production')).status).toBe(403);
@@ -115,6 +103,7 @@ describe('local D1 topic API', () => {
   });
   it('validates content, JSON, size, nodes and cursor', async () => {
     expect((await create({ title: 'a' })).status).toBe(400);
+    expect((await create({ authorId: 'local-developer' })).status).toBe(400);
     expect((await create({ title: '\u0000abc' })).status).toBe(400);
     expect((await create({ body: '\u0000abc' })).status).toBe(400);
     expect((await create({ nodeId: 'missing' })).status).toBe(400);

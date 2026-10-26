@@ -24,3 +24,14 @@
 独立只读审查未发现阻塞项，定位到 NUL 输入通过 JS 长度校验、触发 SQLite length CHECK 的问题，已在边界拒绝并加入 API 回归断言。首次 SQL INSERT…SELECT 的 ON CONFLICT 解析问题和开发模式 Astro 属性导致 Footer 标记不匹配的问题，也均已修复并通过测试。
 
 GitHub Actions 已编写但尚未在远端运行；D1 云端行为、Test/Production 部署、备份恢复演练、正式身份与权限均未验证，不能声称生产就绪。页面缓存当前禁用，没有将缓存命中伪装成实测请求耗时。
+
+## Phase 2 认证验证（2026-10-26）
+
+- Better Auth 与 Drizzle adapter 固定 1.7.13；`auth@1.7.13 generate` 生成认证 Schema，随后 Drizzle 生成 0001 增量迁移。本机应用成功，既有主题与开发作者保留。
+- `pnpm test`：**23 项通过**。新增邮箱验证门槛、哈希持久化、Cookie、会话过期/篡改/退出、重发/未知邮箱统一响应、重置一次性/过期/并发消费/全部旧会话撤销、D1 写入故障、CSRF/回调/体积/密码校验、数据库限流、邮箱隔离、HTTPS 与发信绑定替身、默认资料更新入口关闭。
+- `pnpm test:e2e`：**6 项通过**，桌面与 iPhone 13 viewport 均完成注册 → 开发收件箱验证 → 登录 → 退出 → 重置密码 → 旧密码失败/新密码成功 → 已消费链接失败；论坛 E2E 改为已验证真实账户发帖。
+- `pnpm typecheck`、`pnpm lint`、`pnpm format:check`、`pnpm build`、`pnpm peers check` 通过。新增 auth:setup 与 Env 自动生成，CI 已补本地随机 Secret 初始化。
+- `pnpm check:licenses`：513 条依赖许可记录通过；554 个已安装包版本的通知已重新生成。`check:metadata`、`check:secrets` 通过。
+- 独立 Astra High 只读审查发现默认 update-user 绕过名称契约、平台 invocation logs 可采集 token URL，两者已修复；补充 update-user 的实际回归测试，并关闭 invocation logs/tracing。修正文档限流为每 IP、每路径默认值。
+- 核对构建产物：本地 Secret 仅出现在适配器为 preview 复制的 dist/server/.dev.vars，不进入客户端 bundle；HTTP /.dev.vars 返回 404。该本地文件与整个 dist 均被 Git 忽略，不应公开分发。
+- 尚未配置真实邮件域名/投递，未发送真实邮件、未创建远端资源、未部署；Test/Production 默认认证关闭。GitHub Actions 尚未远端运行。D1 多步注册不具有交互式事务回滚，重置故障行为已测试并在 auth.md 说明。

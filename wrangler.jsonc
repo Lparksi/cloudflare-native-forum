@@ -6,8 +6,20 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "preview_urls": false,
-  "observability": { "enabled": true, "head_sampling_rate": 0.1 },
-  "vars": { "APP_ENV": "local" },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1,
+    "logs": { "enabled": true, "invocation_logs": false },
+    "traces": { "enabled": false },
+  },
+  "secrets": { "required": ["BETTER_AUTH_SECRET"] },
+  "send_email": [{ "name": "AUTH_EMAIL" }],
+  "vars": {
+    "APP_ENV": "local",
+    "AUTH_MAIL_MODE": "local",
+    "BETTER_AUTH_URL": "http://127.0.0.1:4321",
+    "AUTH_MAIL_FROM": "noreply@example.invalid",
+  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -19,7 +31,14 @@
   "env": {
     "test": {
       "name": "cloudflare-native-forum-test",
-      "vars": { "APP_ENV": "test" },
+      "secrets": { "required": ["BETTER_AUTH_SECRET"] },
+      "send_email": [{ "name": "AUTH_EMAIL" }],
+      "vars": {
+        "APP_ENV": "test",
+        "AUTH_MAIL_MODE": "disabled",
+        "BETTER_AUTH_URL": "https://test.example.invalid",
+        "AUTH_MAIL_FROM": "noreply@example.invalid",
+      },
       "d1_databases": [
         {
           "binding": "DB",
@@ -31,7 +50,14 @@
     },
     "production": {
       "name": "cloudflare-native-forum-production",
-      "vars": { "APP_ENV": "production" },
+      "secrets": { "required": ["BETTER_AUTH_SECRET"] },
+      "send_email": [{ "name": "AUTH_EMAIL" }],
+      "vars": {
+        "APP_ENV": "production",
+        "AUTH_MAIL_MODE": "disabled",
+        "BETTER_AUTH_URL": "https://forum.example.invalid",
+        "AUTH_MAIL_FROM": "noreply@example.invalid",
+      },
       "d1_databases": [
         {
           "binding": "DB",

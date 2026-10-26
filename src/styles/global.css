@@ -579,3 +579,55 @@ nav {
     padding: 50px 20px;
   }
 }
+.auth-shell {
+  max-width: 540px;
+}
+.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+  margin: 28px 0;
+}
+.auth-links a:last-child {
+  display: inline;
+}
+.notice {
+  background: var(--soft);
+  color: var(--accent);
+  border-radius: 6px;
+  padding: 12px;
+  margin: 12px 0;
+}
+.account-details {
+  margin: 0 0 28px;
+  overflow-wrap: anywhere;
+}
+.account-details dt {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 16px;
+}
+.account-details dd {
+  margin: 0;
+}
+.mail-list article {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.account-link {
+  font-size: 12px;
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .header-inner {
+    gap: 14px;
+  }
+  .header-inner nav {
+    gap: 12px;
+  }
+  .theme-picker {
+    margin-left: auto;
+  }
+}

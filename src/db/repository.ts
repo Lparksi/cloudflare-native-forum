@@ -67,7 +67,26 @@ export function repository(binding: D1Database) {
           .limit(1)
       )[0];
     },
-    async create(input: TopicInput) {
+    async profileForUser(user: { id: string; name: string }) {
+      await db
+        .insert(profiles)
+        .values({
+          id: `member-${user.id}`,
+          userId: user.id,
+          username: `u_${user.id}`,
+          displayName: user.name,
+          createdAt: Date.now(),
+        })
+        .onConflictDoNothing({ target: profiles.userId });
+      return (
+        await db
+          .select()
+          .from(profiles)
+          .where(eq(profiles.userId, user.id))
+          .limit(1)
+      )[0]!;
+    },
+    async create(input: TopicInput, authorId: string) {
       // INSERT…SELECT checks node visibility in the same SQL statement as the write.
       const node = db
         .select({ id: nodes.id })
@@ -76,7 +95,7 @@ export function repository(binding: D1Database) {
       const now = Date.now();
       const result =
         await db.run(sql`INSERT INTO topics (id, author_id, node_id, title, body, status, created_at, updated_at, request_id)
-        SELECT ${crypto.randomUUID()}, 'local-developer', id, ${input.title}, ${input.body}, 'published', ${now}, ${now}, ${input.requestId}
+        SELECT ${crypto.randomUUID()}, ${authorId}, id, ${input.title}, ${input.body}, 'published', ${now}, ${now}, ${input.requestId}
         FROM (${node}) WHERE true ON CONFLICT(author_id, request_id) DO NOTHING`);
       const existing = (
         await db
@@ -84,7 +103,7 @@ export function repository(binding: D1Database) {
           .from(topics)
           .where(
             and(
-              eq(topics.authorId, 'local-developer'),
+              eq(topics.authorId, authorId),
               eq(topics.requestId, input.requestId),
             ),
           )

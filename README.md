@@ -2,7 +2,7 @@
 
 一个 Workers 原生的技术论坛工程，以简单、可靠、低成本为目标。MIT 开源，允许商业使用。
 
-**当前是 Phase 1 工程基础，尚不能公开运营。** 已实现 SSR 首页、节点页、主题详情、本机发帖与持久化；认证、回复、审核等见下方路线。主题来自真实 D1，没有静态主题假数据。
+**当前已完成 Phase 2 认证基础，尚不能公开运营。** 已实现注册、登录、数据库 Session、邮箱验证与密码重置，以及 SSR 首页、节点和主题。本地邮件进入开发收件箱；尚未配置真实投递。主题来自真实 D1。
 
 ## 本地启动
 
@@ -13,13 +13,14 @@
 # git clone <实际仓库地址>
 # cd <克隆目录>
 pnpm install --frozen-lockfile
+pnpm auth:setup
 pnpm cf:types
 pnpm db:migrate
 pnpm db:seed
 pnpm dev
 ```
 
-访问 [本地首页](http://127.0.0.1:4321)。在「发起讨论」填写标题、节点、正文，以「本地开发者」发布；可刷新、回首页验证持久化。`db:seed` 仅添加开发身份与三个节点，可重复执行，不插入主题。
+访问 [本地首页](http://127.0.0.1:4321)。在「发起讨论」填写标题、节点、正文，先注册，在 [开发收件箱](http://127.0.0.1:4321/dev/mail) 验证邮箱并登录后发布；可刷新、回首页验证持久化。`db:seed` 仅添加开发身份与三个节点，可重复执行，不插入主题。
 
 Astro 在检测到 AI Agent 时会自动后台运行；受限执行环境可用 `pnpm dev --ignore-lock` 保持前台。Wrangler 需要写入其本机 registry，沙盒环境可能需要授予该目录写权限。日志可通过 `WRANGLER_LOG_PATH=.wrangler/logs` 留在工程内。
 
@@ -30,7 +31,7 @@ pnpm preview --ignore-lock
 
 ## 技术架构
 
-Astro 7 + TypeScript strict、Cloudflare adapter、React Islands、Tailwind v4、Hono、Drizzle/D1、Zod。单 Worker、扁平目录，SSR 直接复用 Repository，浏览器通过 Hono API 写入。没有引入 Docker、VPS、Redis、KV 或 R2 服务。
+Astro 7 + TypeScript strict、Cloudflare adapter、React Islands、Tailwind v4、Hono、Drizzle/D1、Zod、Better Auth。单 Worker、扁平目录，SSR 直接复用 Repository，浏览器通过 Hono API 写入。没有引入 Docker、VPS、Redis、KV 或 R2 服务。
 
 - `src/worker.ts`：Workers 入口、Hono 分流、响应计时与安全头。
 - `src/lib/api.ts`：API、Zod 校验、同源与本机写入限制。
@@ -39,12 +40,13 @@ Astro 7 + TypeScript strict、Cloudflare adapter、React Islands、Tailwind v4�
 - `src/layouts/Layout.astro`：共享布局、Footer；`scripts/build-info.mjs`：构建元信息。
 - `tests/`：Miniflare D1 集成测试、构建/计时测试、桌面/移动端 E2E。
 
-[架构、兼容性与后续顺序](docs/architecture.md) · [环境隔离与部署流程](docs/operations.md) · [许可证与素材](docs/licenses.md)
+[认证配置与本地邮件流程](docs/auth.md) · [架构、兼容性与后续顺序](docs/architecture.md) · [环境隔离与部署流程](docs/operations.md) · [许可证与素材](docs/licenses.md)
 
 ## 当前功能
 
 - 首页与节点导航、节点讨论列表、主题详情，全部 SSR；列表 20 条游标分页。
-- 本机创建主题、刷新后保留；幂等键处理重复及并发提交，冲突返回 409。
+- 邮箱注册、强制验证后登录、退出、数据库 Session、密码重置及全部旧会话撤销。
+- 本机已登录用户创建主题、刷新后保留；幂等键处理重复及并发提交，冲突返回 409。
 - 明暗/跟随系统主题、响应式布局、键盘焦点和跳到正文链接。
 - 纯文本转义展示，隐藏/删除主题和隐藏节点不对游客读取。
 - Footer 版本、真实构建 SHA（无 Git 为 dev）、服务端测量值和 Server-Timing。
@@ -85,12 +87,12 @@ E2E 使用已迁移和 seed 的本机 D1，会添加测试主题。请勿对生�
 
 根配置仅供 Local：DB 绑定到本机 SQLite，APP_ENV=local。`env.test`、`env.production` 提供隔离配置，DB ID 为明确的占位 UUID，**没有创建远端数据库**。无部署脚本，无凭据要求。不要把本地配置直接发布。
 
-本阶段没有 R2 上传、Secrets 或邮箱服务。下一阶段再添加 R2 桶、Better Auth secrets、邮箱验证/重置投递、Turnstile keys 和限流绑定，均须按环境隔离。密钥不得写入 wrangler.jsonc 或 Git；使用 Cloudflare Secrets。
+认证需要 BETTER_AUTH_SECRET。pnpm auth:setup 为本地生成被忽略的随机 secret；邮件默认只写本地收件箱。AUTH_EMAIL 绑定适配已实现，真实 Email Service 域名和投递尚未配置。Test/Production 的 AUTH_MAIL_MODE 默认 disabled；不得将本地邮箱模式上线。R2、Turnstile 与业务限流留待后续。密钥不得写入 wrangler.jsonc 或 Git。详见 docs/auth.md。
 
 ## 未完成与下一阶段
 
-1. Better Auth 注册/登录/邮箱验证/密码重置、Session、真实角色与公开身份关联。
-2. Turnstile、限流、封禁、权限与所有权检查；解除公共写入门槛前必须完成。
+1. 配置并验证真实邮件投递；完善角色、用户状态、异常账户诊断与恢复。
+2. Turnstile、业务发帖限流、封禁与资源所有权检查；认证限流已落地，解除公共写入门槛前仍须完成其余措施。
 3. 回复、编辑/软删除 UI、Markdown 安全渲染和代码高亮、点赞收藏。
 4. 管理审核/举报/日志、通知、用户资料、R2 上传与文件校验。
 5. 搜索、热门/活跃排序、RSS/Sitemap、SEO、英语语言包、缓存和实际 Test 部署验收。

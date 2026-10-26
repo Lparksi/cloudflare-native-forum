@@ -1,0 +1,16 @@
+---
+import AuthLayout from '../layouts/AuthLayout.astro';
+import AuthForm from '../components/AuthForm';
+---
+
+<AuthLayout title="登录">
+  {Astro.url.searchParams.has('error') && (
+    <p class="error" role="alert">
+      验证链接无效或已过期，请重新申请。
+    </p>
+  )}
+  {Astro.url.searchParams.get('verified') === '1' && (
+    <p class="notice">邮箱已验证，请登录。</p>
+  )}
+  <AuthForm mode="login" client:load />
+</AuthLayout>
