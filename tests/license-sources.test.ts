@@ -69,3 +69,43 @@ describe('supplemental license evidence', () => {
     expect(() => validateSources([pending], lock, () => bytes)).toThrow();
   });
 });
+
+it('binds later equivalent-source evidence to original package file hashes', () => {
+  const record = {
+    ...fixture(),
+    packageFiles: [{ path: 'index.js', sha256: checksum }],
+    sourceMatches: [
+      {
+        path: 'index.js',
+        sha256: checksum,
+        url: `https://raw.githubusercontent.com/owner/repo/${commit}/index.js`,
+      },
+    ],
+  };
+  expect(() => validateSources([record], lock, () => bytes)).not.toThrow();
+  record.sourceMatches[0].sha256 = 'b'.repeat(64);
+  expect(() => validateSources([record], lock, () => bytes)).toThrow(
+    'Equivalent source differs',
+  );
+});
+
+it('requires the author license URL to match the version-bound README link', () => {
+  const record = {
+    ...fixture(),
+    packageFiles: [{ path: 'README.md', sha256: checksum }],
+    texts: [
+      {
+        ...fixture().texts[0],
+        url: 'https://author.example/license.txt',
+        linkedFrom: {
+          path: 'README.md',
+          sha256: checksum,
+          url: 'http://author.example/license.txt',
+        },
+      },
+    ],
+  };
+  expect(() => validateSources([record], lock, () => bytes)).not.toThrow();
+  record.texts[0].linkedFrom.url = 'http://different.example/license.txt';
+  expect(() => validateSources([record], lock, () => bytes)).toThrow();
+});

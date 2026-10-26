@@ -1926,15 +1926,22 @@
   {
     "key": "boolbase@1.0.0",
     "repository": "https://github.com/fb55/boolbase",
-    "commit": null,
+    "commit": "be0bcd8a4e917a0a5895e95b523fbbed05a64871",
     "integrity": "sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==",
     "attestation": null,
     "metadataUrl": "https://registry.npmjs.org/boolbase/1.0.0",
     "tarball": "https://registry.npmjs.org/boolbase/-/boolbase-1.0.0.tgz",
     "tarballSha256": "69628ff8092c5ff940ea4a0f29da98d520615bae138755c9e059033606c6caa8",
-    "texts": [],
-    "status": "pending-source-review",
-    "reason": "Exact-version metadata is not a substitute for license text.",
+    "texts": [
+      {
+        "name": "LICENSE",
+        "url": "https://raw.githubusercontent.com/fb55/boolbase/be0bcd8a4e917a0a5895e95b523fbbed05a64871/LICENSE",
+        "file": "docs/license/texts/cdf4d87ae0a6c160227263bf4e39a0a10e30e89ae7256e0f7ac7bde0836552c6.txt",
+        "sha256": "cdf4d87ae0a6c160227263bf4e39a0a10e30e89ae7256e0f7ac7bde0836552c6"
+      }
+    ],
+    "status": "text-collected",
+    "reason": "Author added ISC LICENSE in a later commit still declaring 1.0.0. All runtime code (index.js) and README are byte-identical to the exact npm archive; package.json differs only in test script. This is equivalent-source evidence, not a claim about the original publishing commit.",
     "packageFiles": [
       {
         "path": "README.md",
@@ -1948,7 +1955,23 @@
         "path": "package.json",
         "sha256": "ca09c0dccbfc43be6be0ac89e9ffa19b64b30f9c74c64da27f719a7244a25e30"
       }
-    ]
+    ],
+    "sourceMatches": [
+      {
+        "path": "README.md",
+        "sha256": "9cac5bfc290d30ccd13fa833923cb545584481e8ced66380bf758f1053f9d81d",
+        "url": "https://raw.githubusercontent.com/fb55/boolbase/be0bcd8a4e917a0a5895e95b523fbbed05a64871/README.md"
+      },
+      {
+        "path": "index.js",
+        "sha256": "c62510fca8738c7444cdf5012bdd0ce214a1b6f7eaff7facb3a919e4656d7341",
+        "url": "https://raw.githubusercontent.com/fb55/boolbase/be0bcd8a4e917a0a5895e95b523fbbed05a64871/index.js"
+      }
+    ],
+    "sourceManifest": {
+      "url": "https://raw.githubusercontent.com/fb55/boolbase/be0bcd8a4e917a0a5895e95b523fbbed05a64871/package.json",
+      "sha256": "13a235c1d3370bd9d6e5b7cf1ffbba647ff6176de9d987c8f7908e9e9c7ccf4d"
+    }
   },
   {
     "key": "drizzle-kit@0.31.11",
@@ -14486,9 +14509,29 @@
     "metadataUrl": "https://registry.npmjs.org/natural-compare/1.4.0",
     "tarball": "https://registry.npmjs.org/natural-compare/-/natural-compare-1.4.0.tgz",
     "tarballSha256": "5e5569ecd12064f73632a8c18a45b1d1de4a27b699a671864801f1c35ee779ee",
-    "texts": [],
-    "status": "pending-source-review",
-    "reason": "Exact-version metadata is not a substitute for license text.",
+    "texts": [
+      {
+        "name": "README.md",
+        "url": "https://registry.npmjs.org/natural-compare/-/natural-compare-1.4.0.tgz",
+        "archivePath": "package/README.md",
+        "file": "docs/license/texts/ced6cb1fe6ee15a32c63ea8c7e0425454e80456a890c6df3909429530566d40a.txt",
+        "sha256": "ced6cb1fe6ee15a32c63ea8c7e0425454e80456a890c6df3909429530566d40a"
+      },
+      {
+        "name": "author-linked MIT license",
+        "url": "https://lauri.rooden.ee/mit-license.txt",
+        "file": "docs/license/texts/353fe762ba595bf1ffe786acf0f5984bb164205901d74f258af195fc8228c67d.txt",
+        "sha256": "353fe762ba595bf1ffe786acf0f5984bb164205901d74f258af195fc8228c67d",
+        "linkedFrom": {
+          "path": "README.md",
+          "sha256": "ced6cb1fe6ee15a32c63ea8c7e0425454e80456a890c6df3909429530566d40a",
+          "url": "http://lauri.rooden.ee/mit-license.txt"
+        },
+        "retrievedAt": "2026-10-26"
+      }
+    ],
+    "status": "text-collected",
+    "reason": "Exact package README preserves 2012-2015 author copyright and explicitly links the author MIT grant. Preserved that linked full text from HTTPS on 2026-10-26, with a fixed hash; not claimed to be an immutable historical snapshot.",
     "packageFiles": [
       {
         "path": "README.md",

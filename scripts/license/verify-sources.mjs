@@ -12,9 +12,11 @@ async function download(url) {
   const parsed = new URL(url);
   assert.ok(
     parsed.protocol === 'https:' &&
-      ['registry.npmjs.org', 'raw.githubusercontent.com'].includes(
-        parsed.hostname,
-      ),
+      [
+        'registry.npmjs.org',
+        'raw.githubusercontent.com',
+        'lauri.rooden.ee',
+      ].includes(parsed.hostname),
     `Unexpected evidence host: ${url}`,
   );
   const response = await globalThis.fetch(url, {
@@ -34,7 +36,12 @@ if (process.argv.includes('--fetch')) {
           const metadata = JSON.parse(await download(record.metadataUrl));
           assert.equal(`${metadata.name}@${metadata.version}`, record.key);
           assert.equal(metadata.dist.integrity, record.integrity);
-          if (!record.provenance && !record.tag && record.commit)
+          if (
+            !record.provenance &&
+            !record.tag &&
+            !record.sourceMatches &&
+            record.commit
+          )
             assert.equal(metadata.gitHead, record.commit);
           if (record.tag) {
             const refs = execFileSync(
@@ -78,7 +85,30 @@ if (process.argv.includes('--fetch')) {
               `Published provenance changed: ${record.key}`,
             );
           }
+          for (const match of record.sourceMatches || []) {
+            assert.equal(
+              digest(await download(match.url)),
+              match.sha256,
+              `Equivalent source changed: ${record.key}/${match.path}`,
+            );
+          }
+          if (record.sourceManifest) {
+            const bytes = await download(record.sourceManifest.url);
+            assert.equal(digest(bytes), record.sourceManifest.sha256);
+            const manifest = JSON.parse(bytes);
+            assert.equal(`${manifest.name}@${manifest.version}`, record.key);
+            assert.equal(manifest.license, metadata.license);
+          }
           for (const text of record.texts) {
+            if (text.linkedFrom) {
+              const readme = execFileSync('tar', [
+                '-xzOf',
+                path,
+                `package/${text.linkedFrom.path}`,
+              ]);
+              assert.equal(digest(readme), text.linkedFrom.sha256);
+              assert.ok(readme.toString('utf8').includes(text.linkedFrom.url));
+            }
             const bytes = text.archivePath
               ? execFileSync('tar', ['-xzOf', path, text.archivePath])
               : await download(text.url);

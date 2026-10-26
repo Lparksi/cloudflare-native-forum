@@ -31,4 +31,4 @@ Worker 运行时还随附 Playwright v1.64.1 发布的 libwebp WASM，保留 Apa
 
 新增的 [轻量许可审查流程](license/README.md) 说明固定版本 ScanCode、SPDX 2.3 SBOM、源码/浏览器/Worker/构建工具覆盖、报告排除范围和人工审查基线。扫描不是法律保证，未核实发现只报告；扫描执行失败、覆盖缺失和 NOTICE 漂移会使 CI 失败。依赖许可允许清单继续作为硬门禁，不使用 dependency-review 替代。
 
-补充许可材料由 `docs/license/sources.json` 绑定精确版本、锁文件 integrity、官方来源和正文 SHA-256，自动加入通知生成和校验；23 个版本已收集正文，9 个仍缺完整材料。`pnpm license:sources --fetch` 可重新下载官方来源核对；这不代表批准发布或完成所有原生组件义务，具体限制见 [来源机制](license/README.md#版本绑定的补充许可来源)。
+补充许可材料由 `docs/license/sources.json` 绑定精确版本、锁文件 integrity、官方来源和正文 SHA-256，自动加入通知生成和校验；25 个版本已收集正文，7 个仍缺完整材料。`pnpm license:sources --fetch` 可重新下载官方来源核对；这不代表批准发布或完成所有原生组件义务，具体限制见 [来源机制](license/README.md#版本绑定的补充许可来源)。

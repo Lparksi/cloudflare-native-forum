@@ -48,7 +48,7 @@ CI 上传的 `license-reports` 内含 `summary.md`、`review.json`、`coverage.j
 
 ## 版本绑定的补充许可来源
 
-`docs/license/sources.json` 记录原来缺少独立许可文件的 32 个精确版本。此次从 npm 官方重新下载并核对锁文件 integrity 的 3208 个包文件，不复用旧容器证据。23 个版本已收集许可正文；`text-collected` 只表示材料已收集，不是法律结论、组件闭包完整证明或扫描批准。其余 9 个仍为 `pending-source-review`，见 [残留项](source-review.md)。所有 ScanCode 基线继续保持待人工审查。
+`docs/license/sources.json` 记录原来缺少独立许可文件的 32 个精确版本。此次从 npm 官方重新下载并核对锁文件 integrity 的 3208 个包文件，不复用旧容器证据。25 个版本已收集许可正文；`text-collected` 只表示材料已收集，不是法律结论、组件闭包完整证明或扫描批准。其余 7 个仍为 `pending-source-review`，见 [残留项](source-review.md)。所有 ScanCode 基线继续保持待人工审查。
 
 正文逐字保存在 `texts/<sha256>.txt`；生成器通过 `inventory.mjs` 自动加入对应版本的 NOTICE 段落，包含来源 URL 和哈希，重新生成不会丢失。离线校验检查锁文件版本/integrity、原包文件 SHA-256、发布证明的 subject 摘要与源码 commit、正文 SHA-256。workerd 的安装脚本会用平台二进制替换包内启动文件，显式记录 Linux x64 替换关系并校验对应平台包与替换后文件，未将这一差异静默忽略。该新增二进制验证当前只覆盖 Linux x64；其他平台必须补充对应证据后运行。
 
@@ -62,3 +62,5 @@ pnpm check:notices
 来源绑定优先使用 npm 官方发布证明中的 SLSA resolvedDependencies gitCommit；无证明时使用 npm gitHead，`@vscode/l10n` 与 process-ancestry 使用官方确切版本 tag 的 commit。清单保留解码后的官方 statement 与原证明响应哈希；在线重核比对 statement，不要求签名容器永远不变。本机制没有独立执行 Sigstore 签名验证，不声称完成供应链证明认证。在线重核失败应调查来源变化，不能自动改哈希或更换版本。
 
 `packageFiles` 保存原 tarball 各文件哈希，不包含安装后新生成的文件；这不是所有平台原生库的完整版权/许可证扫描。补充来源只扩展通知材料，没有扩大 SPDX 允许清单，也没有将 metadata 缺文件推断为无授权。新增/升级版本需重新收集确切来源，不能复用别的版本的材料。
+
+补充来源还支持两种显式证据：boolbase 的同版本后续许可提交，以原包运行文件的逐字 SHA-256 匹配绑定；natural-compare 的原 README 所链接作者正文，以原 README、确切链接、获取日期和正文哈希绑定。两者都保留其时间与来源限制，详见 source-review.md。在线重核需 Node 24；使用显式 HTTP(S) 代理的环境可设置 `NODE_USE_ENV_PROXY=1`，不会绕过来源或哈希校验。

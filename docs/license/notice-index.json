@@ -1022,7 +1022,7 @@
   {
     "key": "boolbase@1.0.0",
     "platform": false,
-    "sha256": "0da0b9e063df266e7f18b735cbf7510d3984a6d28d73ebd41e5b03ad8fa30efa"
+    "sha256": "a77ee664c15c583bcad170c3e633bd2a2620883c751dda52e38dd971f02412ec"
   },
   {
     "key": "brace-expansion@5.0.12",
@@ -2117,7 +2117,7 @@
   {
     "key": "natural-compare@1.4.0",
     "platform": false,
-    "sha256": "7f82688825660c5c8461bd7306fc6ab6cae7129d938fcd39d2ea511cc4913bf9"
+    "sha256": "7afbfa4d96a5b06192e85e0aff82516c644c56232b00272a3fe6ab005b031342"
   },
   {
     "key": "neotraverse@1.0.1",

@@ -47,6 +47,14 @@ export function validateSources(
         );
       }
     }
+    for (const match of record.sourceMatches || []) {
+      assert.ok(match.url.includes(`/${record.commit}/`));
+      assert.equal(
+        record.packageFiles.find((file) => file.path === match.path)?.sha256,
+        match.sha256,
+        `Equivalent source differs from package: ${record.key}/${match.path}`,
+      );
+    }
     for (const text of record.texts) {
       assert.match(text.file, /^docs\/license\/texts\/[a-f0-9]{64}\.txt$/);
       assert.equal(
@@ -54,7 +62,15 @@ export function validateSources(
         text.sha256,
         `Source text altered: ${record.key}/${text.name}`,
       );
-      if (!text.archivePath)
+      if (text.linkedFrom) {
+        assert.equal(
+          record.packageFiles.find((file) => file.path === text.linkedFrom.path)
+            ?.sha256,
+          text.linkedFrom.sha256,
+        );
+        assert.equal(text.url, text.linkedFrom.url.replace(/^http:/, 'https:'));
+      }
+      if (!text.archivePath && !text.linkedFrom)
         assert.ok(
           text.url.includes(`/${record.commit}/`),
           `Unpinned source: ${text.url}`,
