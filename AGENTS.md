@@ -2,7 +2,7 @@
 
 - 使用简体中文沟通。修改前读取直接相关代码，复用现有契约，保持最小正确实现。
 - Cloudflare Workers 原生优先；单 Worker、Astro SSR、React Islands、Hono、D1 + Drizzle。保持 TypeScript strict。不要提前引入微服务、Redis、VPS 或复杂抽象。
-- MIT 开源，允许商业使用。保留第三方许可声明；字体、图标、图片单独管理许可。版权持有人待项目所有者确认，不猜测名称。
+- MIT 开源，允许商业使用。保留第三方许可声明；字体、图标、图片单独管理许可。版权持有人已由项目所有者确认为 GitHub 用户 Lparksi，GitHub noreply 邮箱见根目录 LICENSE。
 - 优先低成本。不擅自创建收费服务、修改无关资源、部署生产、合并 PR 或改变仓库可见性。
 - 不覆盖用户工作，不修改 Git 配置，不提交 Secret；云端密钥只用 Cloudflare Secrets。本地敏感配置使用被忽略的 `.dev.vars`。
 - API 使用 `/api/v1`，成功 `{ data }`，失败 `{ error: { code, message } }`。不将数据库错误或内部路径返回客户端。
