@@ -28,7 +28,7 @@ const license = readFileSync('LICENSE', 'utf8');
 for (const part of [
   'Permission is hereby granted, free of charge',
   'THE SOFTWARE IS PROVIDED "AS IS"',
-  'Copyright (c) 2026',
+  'Copyright (c) 2026 Lparksi <parksi@lparksi.com>',
 ])
   assert.ok(license.includes(part));
 const licenses = JSON.parse(
@@ -56,19 +56,28 @@ const allowed = new Set([
   'CC-BY-4.0',
   'BlueOak-1.0.0',
 ]);
-// Astro's native image compiler and Tailwind's CSS compiler are build tools;
-// no libvips or Lightning CSS binary is included in the deployed Worker.
-const buildOnly = {
-  'LGPL-3.0-or-later': /^@img\/sharp-libvips-/,
-  'MPL-2.0': /^lightningcss(?:-|$)/,
-};
-const rejected = Object.entries(licenses)
-  .filter(
-    ([license, packages]) =>
-      !allowed.has(license) &&
-      !packages.every((pkg) => buildOnly[license]?.test(pkg.name)),
-  )
-  .map(([license]) => license);
+// Exceptions are exact package/version/license/purpose records, never name patterns.
+const exceptions = JSON.parse(
+  readFileSync('docs/license/exceptions.json', 'utf8'),
+);
+const rejected = [];
+for (const [license, packages] of Object.entries(licenses)) {
+  if (allowed.has(license)) continue;
+  for (const pkg of packages)
+    for (const version of pkg.versions) {
+      if (
+        !exceptions.some(
+          (entry) =>
+            entry.name === pkg.name &&
+            entry.version === version &&
+            entry.license === license &&
+            entry.purpose === 'build-only',
+        )
+      ) {
+        rejected.push(`${pkg.name}@${version}: ${license}`);
+      }
+    }
+}
 assert.deepEqual(
   rejected,
   [],

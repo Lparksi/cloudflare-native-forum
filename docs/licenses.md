@@ -16,7 +16,7 @@
 
 ## 代码与依赖
 
-`pnpm check:licenses` 检查已安装直接和传递依赖的 SPDX 许可，以及项目 MIT 声明。新许可默认使检查失败。`THIRD_PARTY_NOTICES.txt` 保留本次安装包中的许可证和 NOTICE 全文；通过 `node scripts/third-party-notices.mjs` 重新生成。平台可选包会随系统不同而变化，分发其他平台原生二进制前须基于实际安装重新核对通知和源代码义务。
+`pnpm check:licenses` 检查已安装直接和传递依赖的 SPDX 许可，以及项目 MIT 声明。新许可默认使检查失败。`THIRD_PARTY_NOTICES.txt` 保留实际安装包及 vendor 的许可证和 NOTICE 全文；通过 `pnpm notices:write` 重新生成，`pnpm check:notices` 校验正文与平台条目索引。平台可选包会随系统不同而变化，分发其他平台原生二进制前须基于实际安装重新核对通知和源代码义务。
 
 绝大多数依赖为 MIT、Apache-2.0、BSD、ISC 等宽松许可。例外仅限明确列出的构建工具：
 
@@ -26,3 +26,7 @@
 这些工具未被重新标记为 MIT。未经重新审查，不可把该例外扩大到业务运行时依赖。发布 Worker 时须同时保留随附的第三方通知；公开源码仓库应包含本文件与 THIRD_PARTY_NOTICES.txt。
 
 运行时还随附 Playwright v1.64.1 发布的 libwebp WASM，许可为 Apache-2.0 / libwebp BSD / Emscripten 通知，完整文件与二进制来源见 [vendor 记录](../src/vendor/webp/README.md)。该制品不依赖新增 npm 解码包，`check:licenses` 单独验证其固定哈希与许可保留。测试目录中的纯色 WebP 是本项目生成的 fixtures。
+
+## 扫描与发布清单
+
+新增的 [轻量许可审查流程](license/README.md) 说明固定版本 ScanCode、SPDX 2.3 SBOM、源码/浏览器/Worker/构建工具覆盖、报告排除范围和人工审查基线。扫描不是法律保证，未核实发现只报告；扫描执行失败、覆盖缺失和 NOTICE 漂移会使 CI 失败。依赖许可允许清单继续作为硬门禁，不使用 dependency-review 替代。

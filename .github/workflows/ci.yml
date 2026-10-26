@@ -31,6 +31,7 @@ jobs:
       - run: pnpm format:check
       - run: pnpm test
       - run: pnpm check:licenses
+      - run: pnpm check:notices
       - run: pnpm check:metadata
       - run: pnpm check:secrets
       - run: pnpm build

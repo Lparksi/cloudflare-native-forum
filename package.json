@@ -27,7 +27,11 @@
     "check:secrets": "node scripts/check-secrets.mjs",
     "auth:setup": "node scripts/setup-local-auth.mjs",
     "auth:schema": "auth generate --config ./scripts/auth-schema.config.ts --adapter drizzle --dialect sqlite --output ./src/db/auth-schema.ts --yes",
-    "admin:bootstrap": "node scripts/bootstrap-admin.mjs"
+    "admin:bootstrap": "node scripts/bootstrap-admin.mjs",
+    "notices:write": "node scripts/third-party-notices.mjs --write",
+    "check:notices": "node scripts/third-party-notices.mjs",
+    "license:prepare": "node scripts/license/prepare.mjs",
+    "license:report": "node scripts/license/report.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.2",
