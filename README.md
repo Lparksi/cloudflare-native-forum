@@ -9,9 +9,8 @@
 需要 Git、Node.js **22.23.4+（推荐 24 LTS）**、pnpm **12.9.1**。安装依赖不会创建任何云资源。
 
 ```sh
-# 远端仓库尚未创建；以后从项目实际仓库克隆，再进入其目录。
-# git clone <实际仓库地址>
-# cd <克隆目录>
+git clone https://github.com/Lparksi/cloudflare-native-forum.git
+cd cloudflare-native-forum
 pnpm install --frozen-lockfile
 pnpm auth:setup
 pnpm cf:types
@@ -30,6 +29,8 @@ pnpm preview --ignore-lock
 ```
 
 ## 技术架构
+
+接手项目请先阅读 [交接说明](docs/HANDOFF.md)。
 
 Astro 7 + TypeScript strict、Cloudflare adapter、React Islands、Tailwind v4、Hono、Drizzle/D1、Zod、Better Auth。单 Worker、扁平目录，SSR 直接复用 Repository，浏览器通过 Hono API 写入。没有引入 Docker、VPS、Redis 或 KV；R2 使用原生绑定，本轮仅在本机模拟器运行。
 
