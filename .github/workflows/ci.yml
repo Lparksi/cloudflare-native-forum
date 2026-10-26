@@ -12,6 +12,7 @@ jobs:
       CI: 'true'
       WRANGLER_LOG_PATH: .wrangler/logs
       WRANGLER_REGISTRY_PATH: .wrangler/registry
+      UI_EXPECT_CJK_FONT: Noto Sans CJK SC
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,7 +36,26 @@ jobs:
       - run: pnpm build
       - run: pnpm db:migrate && pnpm db:seed
       - run: pnpm exec playwright install --with-deps chromium
+      - name: Install licensed CJK screenshot font
+        run: |
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+          dpkg-query -W -f='${Package} ${Version}\n' fonts-noto-cjk
+          cat /usr/share/doc/fonts-noto-cjk/copyright
+      - name: Inspect screenshot runner fonts
+        run: |
+          fc-match 'sans-serif:lang=zh-cn'
+          fc-match 'Noto Sans CJK SC:lang=zh-cn'
+          fc-list :lang=zh family | sort -u
       - run: pnpm test:e2e
+      - name: Capture isolated UI review screenshots
+        run: pnpm exec playwright test tests/e2e/ui.spec.ts --output=test-results/ui-review
+      - name: Upload UI review screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: 0xca-ui-review
+          path: test-results/ui-review/**/*.png
+          if-no-files-found: error
+          retention-days: 7
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

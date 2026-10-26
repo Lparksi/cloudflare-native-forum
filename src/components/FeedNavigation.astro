@@ -1,0 +1,51 @@
+---
+import type { FeedOptions } from '../lib/contracts';
+interface Props {
+  options: FeedOptions;
+  nodes: { slug: string; name: string }[];
+  activeNode?: string;
+}
+const { options, nodes, activeNode } = Astro.props;
+const sorts = [
+  ['latest', '最新'],
+  ['hot', '热门'],
+  ['active', '活跃'],
+] as const;
+function query(sort: FeedOptions['sort']) {
+  const params = new URLSearchParams({ sort });
+  if (options.q) params.set('q', options.q);
+  return `?${params}`;
+}
+---
+
+<div class="forum-topbar">
+  <nav class="feed-tabs" aria-label="讨论排序">
+    {sorts.map(([value, label]) => (
+      <a
+        href={query(value)}
+        aria-current={options.sort === value ? 'page' : undefined}
+      >
+        {label}
+      </a>
+    ))}
+  </nav>
+  <a class="button compact" href="/new">
+    ＋ 发起讨论
+  </a>
+</div>
+<nav class="node-tabs" aria-label="讨论节点">
+  <a
+    href={`/${query(options.sort)}`}
+    aria-current={!activeNode ? 'page' : undefined}
+  >
+    全部
+  </a>
+  {nodes.map((node) => (
+    <a
+      href={`/go/${node.slug}${query(options.sort)}`}
+      aria-current={activeNode === node.slug ? 'page' : undefined}
+    >
+      {node.name}
+    </a>
+  ))}
+</nav>

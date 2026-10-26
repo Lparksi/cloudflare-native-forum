@@ -6,6 +6,7 @@ import { repository } from '../db/repository';
 import { parseFeed } from '../lib/contracts';
 const repo = repository(env.DB);
 import FeedControls from '../components/FeedControls.astro';
+import FeedNavigation from '../components/FeedNavigation.astro';
 let feed;
 try {
   feed = parseFeed(Astro.url.searchParams);
@@ -19,68 +20,40 @@ const [page, nodes] = await Promise.all([
 ---
 
 <Layout>
-  <section class="intro">
-    <div class="eyebrow">
-      <span class="status-dot"></span> A PLACE FOR CURIOUS MINDS
-    </div>
-    <h1>
-      技术与想法，
-      <br class="mobile-break" />
-      在这里相遇<span>。</span>
-    </h1>
-    <p>交流问题，分享创造。让每一个认真思考，都找到回应。</p>
-  </section>
-  <div class="columns">
+  <h1 class="sr-only">社区讨论</h1>
+  <div class="columns forum-home">
     <section class="panel discussion-panel" aria-label="讨论列表">
-      <div class="panel-heading">
-        <h2>
-          {feed.options.q
-            ? '搜索结果'
-            : feed.options.sort === 'hot'
-              ? '热门讨论'
-              : feed.options.sort === 'active'
-                ? '活跃讨论'
-                : '最新讨论'}{' '}
-          <span class="small-label">
-            {feed.options.q ? 'SEARCH' : feed.options.sort.toUpperCase()}
-          </span>
-        </h2>
-        <a class="button compact" href="/new">
-          ＋ 发起讨论
-        </a>
-      </div>
-      <FeedControls options={feed.options} />
+      <FeedNavigation options={feed.options} nodes={nodes} />
+      <FeedControls options={feed.options} showSort={false} />
       <TopicList {...page} />
     </section>
-    <aside>
+    <aside aria-label="社区信息">
       <section class="panel welcome">
-        <span class="eyebrow">HELLO, WORLD.</span>
-        <h2>欢迎来到边集</h2>
-        <p>一处开放的技术交流空间。保持好奇，认真表达，友善相待。</p>
+        <h2>0xca</h2>
+        <p>关于开发、基础设施与创造的讨论空间。</p>
+        <div class="sidebar-links">
+          <a href="/new">分享一个想法 →</a>
+          <a href="/about">了解社区</a>
+        </div>
         <div class="local-badge">工程预览 · 本地数据</div>
       </section>
       <section class="panel node-panel">
         <div class="panel-heading">
           <h2>探索节点</h2>
           <a href="/nodes" class="muted">
-            全部 ↗
+            全部 →
           </a>
         </div>
         <div class="node-links">
-          {nodes.map((node, i) => (
+          {nodes.map((node) => (
             <a href={`/go/${node.slug}`}>
-              <span class="node-number">0{i + 1}</span>
               <span>{node.name}</span>
               <span class="muted">→</span>
             </a>
           ))}
         </div>
       </section>
-      <p class="aside-note">
-        Built at the edge.
-        <br />
-        Made for the conversation.
-      </p>
+      <p class="aside-note">保持好奇，认真表达，友善相待。</p>
     </aside>
   </div>
 </Layout>

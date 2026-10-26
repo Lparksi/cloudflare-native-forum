@@ -76,13 +76,17 @@ test('mentions and replies create private read-state notifications; search and s
     await page.goto('/');
     const form = page.getByRole('search');
     await form.getByLabel('搜索讨论').fill(keyword);
-    for (const [sort, title] of [
-      ['latest', second],
-      ['hot', first],
-      ['active', first],
+    await form.getByRole('button', { name: '查看', exact: true }).click();
+    for (const [sort, label, title] of [
+      ['latest', '最新', second],
+      ['hot', '热门', first],
+      ['active', '活跃', first],
     ] as const) {
-      await form.getByLabel('排序', { exact: true }).selectOption(sort);
-      await form.getByRole('button', { name: '查看', exact: true }).click();
+      await page
+        .getByRole('navigation', { name: '讨论排序' })
+        .getByRole('link', { name: label, exact: true })
+        .click();
+      expect(new URL(page.url()).searchParams.get('sort')).toBe(sort);
       await expect(page.locator('.topic-title').first()).toHaveText(title);
       await expect(form.getByLabel('搜索讨论')).toHaveValue(keyword);
     }

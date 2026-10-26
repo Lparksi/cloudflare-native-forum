@@ -420,7 +420,7 @@ describe('Better Auth on D1', () => {
       url: 'https://test.example.com/reset-password?token=test',
     });
     expect(sent).toHaveLength(1);
-    expect(sent[0]).toMatchObject({ to: email, subject: '重置你的边集密码' });
+    expect(sent[0]).toMatchObject({ to: email, subject: '重置你的 0xca 密码' });
     expect(() => createAuth({ ...remote, BETTER_AUTH_SECRET: '' })).toThrow();
     expect(() =>
       createAuth({ ...remote, BETTER_AUTH_URL: 'http://test.example.com' }),

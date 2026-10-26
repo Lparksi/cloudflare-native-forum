@@ -5,11 +5,11 @@ import TopicList from '../../components/TopicList.astro';
 import { repository } from '../../db/repository';
 import { parseFeed } from '../../lib/contracts';
 const repo = repository(env.DB);
-const node = (await repo.nodes()).find(
-  (node) => node.slug === Astro.params.slug,
-);
+const nodes = await repo.nodes();
+const node = nodes.find((node) => node.slug === Astro.params.slug);
 if (!node) Astro.response.status = 404;
 import FeedControls from '../../components/FeedControls.astro';
+import FeedNavigation from '../../components/FeedNavigation.astro';
 let feed;
 try {
   feed = parseFeed(Astro.url.searchParams);
@@ -22,23 +22,39 @@ const page = node
 ---
 
 <Layout title={node?.name ?? '节点不存在'}>
-  <section class="intro">
-    <a class="breadcrumb" href="/nodes">
-      ← 全部节点
-    </a>
-    <h1>{node?.name ?? '节点不存在'}</h1>
-    <p>{node?.description}</p>
-  </section>
-  {page && (
-    <section class="panel">
-      <div class="panel-heading">
-        <h2>节点讨论</h2>
-        <a class="button compact" href="/new">
-          ＋ 发起讨论
+  <div class="columns forum-home">
+    <section class="panel discussion-panel" aria-label="节点讨论">
+      <div class="node-heading">
+        <a class="breadcrumb" href="/nodes">
+          全部节点 →
         </a>
+        <h1>{node?.name ?? '节点不存在'}</h1>
+        <p class="muted">
+          {node?.description ?? '这个节点可能已被隐藏或移除。'}
+        </p>
       </div>
-      <FeedControls options={feed.options} />
-      <TopicList {...page} />
+      {page && (
+        <>
+          <FeedNavigation
+            options={feed.options}
+            nodes={nodes}
+            activeNode={node?.slug}
+          />
+          <FeedControls options={feed.options} showSort={false} />
+          <TopicList {...page} />
+        </>
+      )}
     </section>
-  )}
+    <aside aria-label="节点说明">
+      <section class="panel welcome">
+        <h2>从一个问题开始</h2>
+        <p>
+          分享你的实践、发现或想法。发布时请选择合适的节点，方便更多人找到讨论。
+        </p>
+        <div class="sidebar-links">
+          <a href="/">返回全部讨论 →</a>
+        </div>
+      </section>
+    </aside>
+  </div>
 </Layout>

@@ -33,7 +33,7 @@ export async function sendAuthMail(env: Env, mail: AuthMail) {
   if (env.AUTH_MAIL_MODE !== 'cloudflare')
     throw new Error('Mail delivery is disabled');
   const subject =
-    mail.kind === 'verification' ? '验证你的边集邮箱' : '重置你的边集密码';
+    mail.kind === 'verification' ? '验证你的 0xca 邮箱' : '重置你的 0xca 密码';
   const text = `${subject}\n\n请打开以下链接：\n${mail.url}\n\n如果不是你发起的操作，请忽略此邮件。`;
   const escaped = mail.url
     .replaceAll('&', '&amp;')
@@ -42,7 +42,7 @@ export async function sendAuthMail(env: Env, mail: AuthMail) {
     .replaceAll('>', '&gt;');
   await env.AUTH_EMAIL.send({
     to: mail.to,
-    from: { email: env.AUTH_MAIL_FROM, name: '边集' },
+    from: { email: env.AUTH_MAIL_FROM, name: '0xca' },
     subject,
     text,
     html: `<p>${subject}</p><p><a href="${escaped}">继续操作</a></p><p>如果不是你发起的操作，请忽略此邮件。</p>`,
