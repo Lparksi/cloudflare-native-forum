@@ -49,11 +49,13 @@ test('create, persist, render safely and browse a topic', async ({ page }) => {
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
-  await page.getByRole('combobox', { name: '外观' }).selectOption('dark');
+  await page.getByRole('button', { name: /^外观：/ }).click();
+  await page.getByRole('menuitemradio', { name: '深色' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await page.getByRole('combobox', { name: '外观' }).selectOption('light');
+  await page.getByRole('button', { name: /^外观：/ }).click();
+  await page.getByRole('menuitemradio', { name: '浅色' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 });
 

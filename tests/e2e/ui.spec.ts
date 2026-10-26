@@ -204,7 +204,8 @@ test('local UI review captures compact feeds and safe continuous discussions', a
   }
 
   await page.goto('/');
-  await page.getByRole('combobox', { name: '外观' }).selectOption('light');
+  await page.getByRole('button', { name: /^外观：/ }).click();
+  await page.getByRole('menuitemradio', { name: '浅色' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.locator('.topic-row').first()).toContainText(
     topics.at(-1)![1],
@@ -250,7 +251,8 @@ test('local UI review captures compact feeds and safe continuous discussions', a
     fullPage: true,
   });
 
-  await page.getByRole('combobox', { name: '外观' }).selectOption('dark');
+  await page.getByRole('button', { name: /^外观：/ }).click();
+  await page.getByRole('menuitemradio', { name: '深色' }).click();
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await recordRenderedFonts(page, ['h1', '.topic-body p']);
@@ -269,7 +271,8 @@ test('local UI review captures compact feeds and safe continuous discussions', a
   await page.setViewportSize({ width: 320, height: 844 });
   await page.goto(`/t/${id}`);
   await expectNoPageOverflow(page);
-  await page.getByRole('combobox', { name: '外观' }).selectOption('light');
+  await page.getByRole('button', { name: /^外观：/ }).click();
+  await page.getByRole('menuitemradio', { name: '浅色' }).click();
   await expectNoPageOverflow(page);
 
   // A valid 80-character unbroken display name must wrap without clipping
