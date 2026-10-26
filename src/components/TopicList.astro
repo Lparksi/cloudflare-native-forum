@@ -38,17 +38,18 @@ if (nextCursor) params.set('cursor', nextCursor);
             {topic.node}
           </a>
           <a href={`/member/${topic.username}`}>{topic.author}</a>
-          <span>
-            {topic.replyCount} 回复 · {topic.voteCount} 赞
-          </span>
           <time datetime={new Date(topic.createdAt).toISOString()}>
             {new Date(topic.createdAt).toISOString().slice(0, 10)}
           </time>
         </div>
       </div>
-      <span class="topic-arrow" aria-hidden="true">
-        ↗
-      </span>
+      <a
+        class="topic-replies"
+        href={`/t/${topic.id}#replies`}
+        aria-label={`${topic.replyCount} 条回复：${topic.title}`}
+      >
+        {topic.replyCount}
+      </a>
     </article>
   ))}
   {items.length === 0 && (

@@ -169,7 +169,7 @@ test('compresses images to WebP, saves avatar/profile and renders public member 
   await page.getByRole('link', { name: '资料测试成员', exact: true }).click();
   await expect(page).toHaveURL(memberURL);
   await expect(
-    page.getByRole('link', { name: '上传图片端到端主题' }),
+    page.getByRole('link', { name: '上传图片端到端主题', exact: true }),
   ).toBeVisible();
   expect(
     await page.evaluate(

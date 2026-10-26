@@ -7,13 +7,11 @@ const nodes = await repository(env.DB).nodes();
 
 <Layout title="探索节点">
   <section class="intro">
-    <div class="eyebrow">FIND YOUR CORNER</div>
-    <h1>
-      探索节点<span>。</span>
-    </h1>
+    <div class="eyebrow">0xca / 节点</div>
+    <h1>探索节点</h1>
     <p>从一个兴趣出发，遇见不同的视角。</p>
   </section>
-  <div class="node-grid">
+  <div class="node-grid node-directory">
     {nodes.map((node) => (
       <a class="panel padded node-card" href={`/go/${node.slug}`}>
         <h2>{node.name} ↗</h2>

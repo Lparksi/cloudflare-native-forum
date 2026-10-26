@@ -2,7 +2,7 @@ import type { BetterAuthOptions } from 'better-auth';
 
 // Shared with the pinned CLI so generated tables match the runtime options.
 export const authOptions = {
-  appName: '边集',
+  appName: '0xca',
   basePath: '/api/auth',
   // Public profiles have their own validated API; keep auth fields immutable here.
   disabledPaths: ['/update-user'],

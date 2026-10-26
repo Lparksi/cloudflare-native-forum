@@ -45,141 +45,160 @@ const quote = quoted
 ---
 
 <Layout title={topic?.title ?? '主题不存在'}>
-  <div class="narrow">
-    <a href="/" class="breadcrumb">
-      ← 返回讨论
-    </a>
-    <article class="panel padded">
-      {topic ? (
-        <>
-          <a class="node-chip" href={`/go/${topic.slug}`}>
-            {topic.node}
-          </a>
-          <h1 class="detail-title">{topic.title}</h1>
-          <p class="topic-meta">
-            <a href={`/member/${topic.username}`}>{topic.author}</a> ·{' '}
-            <time datetime={new Date(topic.createdAt).toISOString()}>
-              {new Date(topic.createdAt)
-                .toISOString()
-                .replace('T', ' ')
-                .slice(0, 16)}{' '}
-              UTC
-            </time>
-            {topic.revision > 1 && <span>已编辑</span>}
-          </p>
-          <div class="topic-body markdown" set:html={topicHtml} />
-          {writable && <ReportButton kind="topic" id={id} client:load />}
-          {writable && viewer === topic.authorId && (
-            <ContentActions
-              kind="topic"
-              id={id}
-              revision={topic.revision}
-              client:load
-            />
-          )}
-          {writable && state ? (
-            <TopicInteractions topicId={id} initial={state} client:load />
-          ) : (
-            <p class="stage-note">
-              {topic.voteCount} 次点赞 · <a href="/login">登录后参与讨论</a>
-            </p>
-          )}
-        </>
-      ) : (
-        <>
-          <h1>主题不存在</h1>
-          <p>此主题可能已被隐藏或删除。</p>
-        </>
-      )}
-    </article>
-    {topic && (
-      <>
-        <section class="panel reply-panel" aria-label="回复列表">
-          <div class="panel-heading">
-            <h2>{topic.replyCount} 条回复</h2>
-            {topic.lastRepliedAt && (
-              <time class="muted">
-                最近回复{' '}
-                {new Date(topic.lastRepliedAt)
-                  .toISOString()
-                  .slice(0, 16)
-                  .replace('T', ' ')}{' '}
-                UTC
-              </time>
-            )}
+  <div class="discussion-columns forum-home">
+    <div class="discussion-main">
+      <a href="/" class="breadcrumb">
+        ← 返回讨论
+      </a>
+      <article class="panel topic-detail">
+        {topic ? (
+          <>
+            <header class="topic-detail-header">
+              <a class="node-chip" href={`/go/${topic.slug}`}>
+                {topic.node}
+              </a>
+              <h1 class="detail-title">{topic.title}</h1>
+              <p class="topic-meta">
+                <a href={`/member/${topic.username}`}>{topic.author}</a> ·{' '}
+                <time datetime={new Date(topic.createdAt).toISOString()}>
+                  {new Date(topic.createdAt)
+                    .toISOString()
+                    .replace('T', ' ')
+                    .slice(0, 16)}{' '}
+                  UTC
+                </time>
+                {topic.revision > 1 && <span>已编辑</span>}
+              </p>
+            </header>
+            <div class="topic-body markdown" set:html={topicHtml} />
+            <div class="topic-detail-actions">
+              {writable && <ReportButton kind="topic" id={id} client:load />}
+              {writable && viewer === topic.authorId && (
+                <ContentActions
+                  kind="topic"
+                  id={id}
+                  revision={topic.revision}
+                  client:load
+                />
+              )}
+              {writable && state ? (
+                <TopicInteractions topicId={id} initial={state} client:load />
+              ) : (
+                <p class="stage-note">
+                  {topic.voteCount} 次点赞 · <a href="/login">登录后参与讨论</a>
+                </p>
+              )}
+            </div>
+          </>
+        ) : (
+          <div class="padded">
+            <h1>主题不存在</h1>
+            <p>此主题可能已被隐藏或删除。</p>
           </div>
-          {after.data > 0 && (
-            <a class="next-page" href={`/t/${id}`}>
-              从第一楼开始查看 ↑
-            </a>
-          )}
-          {rows.map((reply) => (
-            <article class="reply-row" id={`reply-${reply.id}`}>
-              <div class="reply-meta">
-                <a href={`/member/${reply.username}`}>
-                  <strong>{reply.author}</strong>
-                </a>
-                <span>#{reply.floor}</span>
-                <time datetime={new Date(reply.createdAt).toISOString()}>
-                  {new Date(reply.createdAt)
+        )}
+      </article>
+      {topic && (
+        <>
+          <section class="panel reply-panel" id="replies" aria-label="回复列表">
+            <div class="panel-heading">
+              <h2>{topic.replyCount} 条回复</h2>
+              {topic.lastRepliedAt && (
+                <time class="muted">
+                  最近回复{' '}
+                  {new Date(topic.lastRepliedAt)
                     .toISOString()
                     .slice(0, 16)
                     .replace('T', ' ')}{' '}
                   UTC
                 </time>
-                {reply.revision > 1 && reply.status === 'published' && (
-                  <span>已编辑</span>
-                )}
-              </div>
-              {reply.status === 'published' ? (
-                <>
-                  <div class="reply-body markdown" set:html={reply.html} />
-                  <div class="reply-controls">
-                    {writable && (
-                      <ReportButton kind="reply" id={reply.id} client:load />
-                    )}
-                    {writable && (
-                      <a
-                        href={`?after=${after.data}&quote=${reply.id}#reply-form`}
-                      >
-                        引用 #{reply.floor}
-                      </a>
-                    )}
-                    {writable && viewer === reply.authorId && (
-                      <ContentActions
-                        kind="reply"
-                        id={reply.id}
-                        revision={reply.revision}
-                        client:load
-                      />
-                    )}
-                  </div>
-                </>
-              ) : (
-                <p class="muted">此回复已移除</p>
               )}
-            </article>
-          ))}
-          {rows.length === 0 && (
-            <p class="padded muted">还没有回复，分享你的想法吧。</p>
-          )}
-          {page.nextCursor !== null && (
-            <a class="next-page" href={`?after=${page.nextCursor}`}>
-              后续回复 ↓
-            </a>
-          )}
+            </div>
+            {after.data > 0 && (
+              <a class="next-page" href={`/t/${id}`}>
+                从第一楼开始查看 ↑
+              </a>
+            )}
+            {rows.map((reply) => (
+              <article class="reply-row" id={`reply-${reply.id}`}>
+                <div class="reply-meta">
+                  <a href={`/member/${reply.username}`}>
+                    <strong>{reply.author}</strong>
+                  </a>
+                  <span class="reply-floor">#{reply.floor}</span>
+                  <time datetime={new Date(reply.createdAt).toISOString()}>
+                    {new Date(reply.createdAt)
+                      .toISOString()
+                      .slice(0, 16)
+                      .replace('T', ' ')}{' '}
+                    UTC
+                  </time>
+                  {reply.revision > 1 && reply.status === 'published' && (
+                    <span>已编辑</span>
+                  )}
+                </div>
+                {reply.status === 'published' ? (
+                  <>
+                    <div class="reply-body markdown" set:html={reply.html} />
+                    <div class="reply-controls">
+                      {writable && (
+                        <ReportButton kind="reply" id={reply.id} client:load />
+                      )}
+                      {writable && (
+                        <a
+                          href={`?after=${after.data}&quote=${reply.id}#reply-form`}
+                        >
+                          引用 #{reply.floor}
+                        </a>
+                      )}
+                      {writable && viewer === reply.authorId && (
+                        <ContentActions
+                          kind="reply"
+                          id={reply.id}
+                          revision={reply.revision}
+                          client:load
+                        />
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <p class="muted">此回复已移除</p>
+                )}
+              </article>
+            ))}
+            {rows.length === 0 && (
+              <p class="padded muted">还没有回复，分享你的想法吧。</p>
+            )}
+            {page.nextCursor !== null && (
+              <a class="next-page" href={`?after=${page.nextCursor}`}>
+                后续回复 ↓
+              </a>
+            )}
+          </section>
+          <section class="panel padded reply-panel" id="reply-form">
+            <h2>参与讨论</h2>
+            {writable ? (
+              <ReplyComposer topicId={id} quote={quote} client:load />
+            ) : (
+              <p class="muted">
+                <a href="/login">登录并验证邮箱后回复</a>；当前只开放本机写入。
+              </p>
+            )}
+          </section>
+        </>
+      )}
+    </div>
+    {topic && (
+      <aside aria-label="讨论信息">
+        <section class="panel welcome">
+          <h2>{topic.node}</h2>
+          <p>正在阅读这个节点中的讨论。</p>
+          <div class="sidebar-links">
+            <a href={`/go/${topic.slug}`}>浏览节点 →</a>
+            <a href="#reply-form">参与讨论 ↓</a>
+          </div>
         </section>
-        <section class="panel padded reply-panel" id="reply-form">
-          <h2>参与讨论</h2>
-          {writable ? (
-            <ReplyComposer topicId={id} quote={quote} client:load />
-          ) : (
-            <p class="muted">
-              <a href="/login">登录并验证邮箱后回复</a>；当前只开放本机写入。
-            </p>
-          )}
-        </section>
-      </>
+        <p class="aside-note">认真表达，也尊重不同的观点。</p>
+      </aside>
     )}
   </div>
 </Layout>

@@ -14,7 +14,7 @@ interface Props {
   description?: string;
 }
 const {
-  title = '技术与想法，在这里相遇',
+  title = '社区讨论',
   description = '一个关于开发、基础设施与创造的技术社区。',
 } = Astro.props;
 const commitUrl =
@@ -28,7 +28,7 @@ const commitUrl =
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title} · 边集</title>
+    <title>{title} · 0xca</title>
     <meta name="description" content={description} />
     <meta name="color-scheme" content="light dark" />
     <script is:inline>
@@ -47,11 +47,8 @@ const commitUrl =
     </a>
     <header class="site-header">
       <div class="header-inner">
-        <a class="brand" href="/" aria-label="边集首页">
-          <span class="brand-mark">边</span>
-          <span>
-            边集 <small>EDGE COMMONS</small>
-          </span>
+        <a class="brand" href="/" aria-label="0xca 首页">
+          <span class="brand-wordmark">0xca</span>
         </a>
         <nav aria-label="主导航">
           <a href="/">讨论</a>
@@ -74,9 +71,9 @@ const commitUrl =
     </main>
     <footer class="site-footer">
       <div>
-        <span>© {new Date().getUTCFullYear()} 边集</span>
+        <span>0xca · {new Date().getUTCFullYear()}</span>
         <a href="/about#license">MIT License</a>
-        <span>为好奇心，留一块地方。</span>
+        <span>交流问题，分享创造。</span>
       </div>
       <div class="build-info">
         <span>v{buildInfo.version}</span>
