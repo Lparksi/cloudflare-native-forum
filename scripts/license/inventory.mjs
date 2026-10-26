@@ -1,3 +1,4 @@
+import { supplementalTexts } from './sources.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -41,6 +42,7 @@ export function inventory() {
           }
         };
         collect(path);
+        texts.push(...supplementalTexts(key, path));
         texts.sort((a, b) => a.name.localeCompare(b.name, 'en'));
         const record = {
           key,
