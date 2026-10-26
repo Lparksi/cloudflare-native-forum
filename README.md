@@ -111,4 +111,4 @@ E2E 每轮在 `.cache/e2e/` 创建独立本机 D1，自动迁移和 seed，不�
 
 ## License
 
-[MIT](LICENSE)。允许使用、修改、分发和商业利用，需保留声明。版权持有人为 GitHub 用户 Lparksi，GitHub noreply 邮箱见 [LICENSE](LICENSE)。名称、Logo 和商标权不由代码许可授予。[第三方许可说明](docs/licenses.md) 与 [完整依赖通知](THIRD_PARTY_NOTICES.txt) 单独保留。
+[MIT](LICENSE)。允许使用、修改、分发和商业利用，需保留声明。版权持有人为 GitHub 用户 Lparksi，项目所有者指定的联系邮箱见 [LICENSE](LICENSE)。名称、Logo 和商标权不由代码许可授予。[第三方许可说明](docs/licenses.md) 与 [完整依赖通知](THIRD_PARTY_NOTICES.txt) 单独保留。
