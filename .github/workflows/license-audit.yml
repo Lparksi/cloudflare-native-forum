@@ -17,7 +17,7 @@ jobs:
       LICENSE_AUDIT: '1'
       WRANGLER_LOG_PATH: .wrangler/logs
       WRANGLER_REGISTRY_PATH: .wrangler/registry
-      SCANCODE_CACHE: ${{ runner.temp }}/scancode-cache
+      SCANCODE_CACHE: ${{ github.workspace }}/.cache/scancode-toolkit
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
