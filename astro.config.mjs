@@ -6,7 +6,12 @@ import { resolveBuildInfo } from './scripts/build-info.mjs';
 
 export default defineConfig({
   output: 'server',
-  adapter: cloudflare({ imageService: 'compile' }),
+  adapter: cloudflare({
+    imageService: 'compile',
+    ...(process.env.FORUM_STATE_PATH
+      ? { persistState: { path: process.env.FORUM_STATE_PATH } }
+      : {}),
+  }),
   integrations: [react()],
   session: false,
   vite: {

@@ -6,9 +6,9 @@
 - 优先低成本。不擅自创建收费服务、修改无关资源、部署生产、合并 PR 或改变仓库可见性。
 - 不覆盖用户工作，不修改 Git 配置，不提交 Secret；云端密钥只用 Cloudflare Secrets。本地敏感配置使用被忽略的 `.dev.vars`。
 - API 使用 `/api/v1`，成功 `{ data }`，失败 `{ error: { code, message } }`。不将数据库错误或内部路径返回客户端。
-- 数据访问集中在 `src/db/repository.ts` 与 `src/db/discussions.ts`；用参数化查询、外键、唯一约束和游标分页。D1 多步原子写使用 batch，不能假设支持交互式事务。
+- 数据访问集中在 `src/db/repository.ts`、`src/db/discussions.ts` 与 `src/db/moderation.ts`；用参数化查询、外键、唯一约束和游标分页。D1 多步原子写使用 batch，不能假设支持交互式事务。
 - Schema 在 `src/db/schema.ts`；使用 `pnpm db:generate` 生成并提交版本化迁移。不得修改已应用迁移，生产不得重置。迁移前备份、检查计划并验证恢复。
-- 认证使用 Better Auth + Drizzle D1，版本和 Schema 由固定 CLI 生成，详见 docs/auth.md。业务写入仅允许 APP_ENV=local + loopback URL + 精确 Origin，并要求已验证邮箱的真实 Session；旧开发作者不是登录身份。Test/Production 业务写入继续关闭，直到权限、Turnstile 和业务限流落地。
+- 认证使用 Better Auth + Drizzle D1，版本和 Schema 由固定 CLI 生成，详见 docs/auth.md。业务写入仅允许 APP_ENV=local + loopback URL + 精确 Origin，并要求已验证邮箱的真实 Session；旧开发作者不是登录身份。Test/Production 业务写入继续关闭，直到真实邮件、Turnstile 和目标环境隔离验收并获明确开放授权。
 - 本地邮件只进受 loopback、APP_ENV 与精确原点限制的开发收件箱；Test/Production 默认 AUTH_MAIL_MODE=disabled。不得将本地收件箱、.dev.vars 或 dist/server/.dev.vars 对外发布。真实邮件需事先配置域名/Secret，不能用日志输出验证或重置 token。
 - D1 认证 adapter 显式 transaction:false，不声称多步事务可回滚。密码重置单次消费、旧 Session 撤销和失败行为必须测试；不要自行实现密码哈希或 Session 协议。
 - Markdown 预览与 SSR 只能使用 src/lib/markdown.ts 的统一安全管线；不接受 raw HTML，保留 sanitizer 协议与 clobber 保护，可信高亮在清理之后。权限、文件上传、用户数据和并发写入需要针对性测试。

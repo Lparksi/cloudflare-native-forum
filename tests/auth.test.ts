@@ -20,6 +20,7 @@ beforeAll(async () => {
 });
 beforeEach(async () => {
   await env.DB.prepare('DELETE FROM rate_limit').run();
+  await env.DB.prepare('DELETE FROM write_limits').run();
 });
 afterAll(async () => {
   await fixture.mf.dispose();
@@ -405,9 +406,10 @@ describe('Better Auth on D1', () => {
       },
     };
     const { email } = await registerVerified(env);
-    const response = await authRequest(remote, '/sign-in/email', {
-      email,
-      password,
+    const response = await createAuth(remote).api.signInEmail({
+      body: { email, password },
+      headers: new Headers({ Origin: remote.BETTER_AUTH_URL }),
+      asResponse: true,
     });
     expect(response.status).toBe(200);
     expect(response.headers.getSetCookie().join(';')).toContain('Secure');

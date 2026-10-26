@@ -6,6 +6,7 @@ import { discussions } from '../../db/discussions';
 import { getSession } from '../../auth/server';
 import { renderMarkdown } from '../../lib/markdown';
 import { localWriteAllowed, replyCursor } from '../../lib/contracts';
+import ReportButton from '../../components/ReportButton';
 import ContentActions from '../../components/ContentActions';
 import ReplyComposer from '../../components/ReplyComposer';
 import TopicInteractions from '../../components/TopicInteractions';
@@ -67,6 +68,7 @@ const quote = quoted
             {topic.revision > 1 && <span>已编辑</span>}
           </p>
           <div class="topic-body markdown" set:html={topicHtml} />
+          {writable && <ReportButton kind="topic" id={id} client:load />}
           {writable && viewer === topic.authorId && (
             <ContentActions
               kind="topic"
@@ -131,6 +133,9 @@ const quote = quoted
                 <>
                   <div class="reply-body markdown" set:html={reply.html} />
                   <div class="reply-controls">
+                    {writable && (
+                      <ReportButton kind="reply" id={reply.id} client:load />
+                    )}
                     {writable && (
                       <a
                         href={`?after=${after.data}&quote=${reply.id}#reply-form`}

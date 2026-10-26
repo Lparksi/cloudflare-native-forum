@@ -1,16 +1,17 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { Miniflare } from 'miniflare';
-import { setupDatabase, registerVerified } from './auth-helpers';
+import { setupDatabase, registerVerified, testProof } from './auth-helpers';
 import { api } from '../src/lib/api';
 
 let mf: Miniflare;
 let env: Env;
 let cookie: string;
-function create(
+async function create(
   overrides: Record<string, unknown> = {},
   mode: Env['APP_ENV'] = 'local',
   headers: Record<string, string> = {},
 ) {
+  const proof = await testProof(env, 'http://localhost/api/v1/topics', 'topic');
   return api.request(
     'http://localhost/api/v1/topics',
     {
@@ -19,6 +20,7 @@ function create(
         'Content-Type': 'application/json',
         Origin: 'http://localhost',
         Cookie: cookie,
+        'x-turnstile-token': proof,
         ...headers,
       },
       body: JSON.stringify({
@@ -123,6 +125,11 @@ describe('local D1 topic API', () => {
           Origin: 'http://localhost',
           'Content-Type': 'application/json',
           Cookie: cookie,
+          'x-turnstile-token': await testProof(
+            env,
+            'http://localhost/api/v1/topics',
+            'topic',
+          ),
         },
         body: '{',
       },

@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { Miniflare } from 'miniflare';
 import { readFileSync, readdirSync } from 'node:fs';
-it('adds Phase 3 without rebuilding or losing existing topics and author relationships', async () => {
+it('adds discussion and moderation migrations without losing existing content or auth sessions', async () => {
   const mf = new Miniflare({
     modules: true,
     script: 'export default { fetch() { return new Response("ok") } }',
@@ -14,6 +14,18 @@ it('adds Phase 3 without rebuilding or losing existing topics and author relatio
       .filter((file) => file.endsWith('.sql'))
       .sort();
     for (const file of files) {
+      if (file.startsWith('0003')) {
+        await db
+          .prepare(
+            "INSERT INTO user(id,name,email,email_verified) VALUES ('existing-user','Existing','existing@example.com',1)",
+          )
+          .run();
+        await db
+          .prepare(
+            "INSERT INTO session(id,token,user_id,expires_at,updated_at) VALUES ('existing-session','existing-token','existing-user',9999999999999,1)",
+          )
+          .run();
+      }
       if (file.startsWith('0002')) {
         await db
           .prepare(
@@ -32,11 +44,25 @@ it('adds Phase 3 without rebuilding or losing existing topics and author relatio
           .run();
       }
       const source = readFileSync(`db/migrations/${file}`, 'utf8');
-      if (file.startsWith('0002'))
+      if (/^000[234]/.test(file))
         expect(source).not.toMatch(/DROP TABLE|foreign_keys\s*=\s*OFF/i);
       for (const statement of source.split('--> statement-breakpoint'))
         if (statement.trim()) await db.prepare(statement).run();
     }
+    expect(
+      await db
+        .prepare(
+          'SELECT role,banned,revision FROM account_access WHERE user_id=?',
+        )
+        .bind('existing-user')
+        .first(),
+    ).toEqual({ role: 'member', banned: 0, revision: 1 });
+    expect(
+      await db
+        .prepare('SELECT token FROM session WHERE id=?')
+        .bind('existing-session')
+        .first(),
+    ).toEqual({ token: 'existing-token' });
     expect(
       await db
         .prepare(

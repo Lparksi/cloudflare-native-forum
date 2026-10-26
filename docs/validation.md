@@ -46,3 +46,15 @@ GitHub Actions 已编写但尚未在远端运行；D1 云端行为、Test/Produc
 - `pnpm check:licenses`：567 条许可记录通过，609 个已安装包版本的通知已更新；构建信息与基础 Secret 检查通过。
 - 独立 Astra High 只读安全审查未发现阻塞项，核对了 SQL 所有权/父级可见性、删除正文不泄露、Markdown 链、原子楼层/计数和收藏 Session 隔离；按其指出的覆盖缺口补充了隐藏父级下主题 PATCH/DELETE 与互动 DELETE 的测试断言。
 - 仍未部署或验证远端 D1；Test/Production 写入限制保留。没有实现管理员/版主、Turnstile、业务限流、@ 用户解析/通知和真实邮件投递，不能据此声称生产就绪。
+
+## Phase 4 管理与安全验证（2026-10-26）
+
+- `pnpm test`：**58 项通过**（9 个文件）。新增管理员/版主矩阵、旧 Session 降权生效、自身/同级封禁拒绝、最后管理员并发保护、封禁撤销 Session 与并发插入防线、业务 SQL 再检查封禁、隐藏恢复及回复计数、举报去重与处理、节点管理、Origin/输入边界。
+- 故障注入验证管理变更与审核日志 D1 batch 原子回滚，封禁失败时 Session 撤销也回滚；首次管理员 bootstrap 授权与日志同一语句原子提交，重复初始化拒绝。迁移回归确认旧主题/作者、既有认证 Session 保留，旧账户回填 member，外键检查通过。
+- 挑战测试覆盖本地 action/IP/过期/单次消费、API 缺失/伪造/重放拒绝；managed Siteverify 严格 action/hostname、失败/异常/非 JSON/非 2xx 关闭。限流覆盖并发 15 次只通过 3 次、过期窗口恢复、用户跨 IP 限额、主题/回复额度独立与 Retry-After。
+- `pnpm test:e2e`：**12 项通过**，桌面和 iPhone 13 viewport 均覆盖管理员初始化、授予版主、举报处理、隐藏恢复、封禁/解封后重新登录、节点创建、审核日志和移动端宽度；保留前阶段讨论及认证回归。managed widget 用浏览器脚本替身验证过期清除、请求后 reset 和卸载 remove。
+- E2E 改为每轮独立本机 D1，自动迁移与 seed，不使用日常开发数据库。首次回归发现 bootstrap CLI 依赖本地 Wrangler 未返回的 meta.changes，已改为单语句 RETURNING 与 0004 触发器，并补故障回滚测试；日志同名记录断言改为明确匹配首项。
+- `pnpm typecheck`、`pnpm lint`、`pnpm format:check`、`pnpm build`、`pnpm peers check` 通过；`cf:types` 从配置重新生成。567 条许可记录、构建元信息和基础 Secret 检查通过。Gitleaks 对包含新增文件的交付源码副本扫描约 2.42 MB，无泄露。
+- 独立 Astra High 只读审查未发现阻塞项，核对认证路径归一、封禁并发、SQL 权限与审计原子性、首次管理员和挑战生命周期；安装版本路由器的 9 种路径验证没有出现挑战绕过。
+- 正常本机迁移前已导出备份，0003/0004 增量迁移成功；未修改已应用迁移。未在正常开发库指定管理员，需操作者为自己已验证的账户执行本地 bootstrap。
+- 本轮没有真实 Turnstile 密钥或站点，没有验证真实挑战签发/重放、真实邮件或远端 D1；Test/Production 保持禁用，没有部署、推送或创建收费资源。不能据此声称生产就绪。

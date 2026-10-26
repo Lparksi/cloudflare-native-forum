@@ -1,17 +1,26 @@
 import { beforeAll, beforeEach, afterAll, describe, expect, it } from 'vitest';
 import { api } from '../src/lib/api';
-import { setupDatabase, registerVerified } from './auth-helpers';
+import { setupDatabase, registerVerified, testProof } from './auth-helpers';
 let fixture: Awaited<ReturnType<typeof setupDatabase>>;
 let env: Env;
 let alice: string;
 let bob: string;
-function request(
+async function request(
   path: string,
   method = 'GET',
   body?: unknown,
   cookie = alice,
   overrides = {},
 ) {
+  const action =
+    method === 'POST' && path === '/topics'
+      ? 'topic'
+      : method === 'POST' && /\/replies$/.test(path)
+        ? 'reply'
+        : null;
+  const proof = action
+    ? await testProof(env, `http://localhost/api/v1${path}`, action)
+    : '';
   return api.request(
     `http://localhost/api/v1${path}`,
     {
@@ -20,6 +29,7 @@ function request(
         Origin: 'http://localhost',
         'Content-Type': 'application/json',
         Cookie: cookie,
+        'x-turnstile-token': proof,
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     },
@@ -57,7 +67,15 @@ beforeAll(async () => {
   ).cookie;
 });
 beforeEach(async () => {
-  for (const table of ['topic_votes', 'bookmarks', 'replies', 'topics'])
+  for (const table of [
+    'reports',
+    'topic_votes',
+    'bookmarks',
+    'replies',
+    'topics',
+    'write_limits',
+    'local_challenges',
+  ])
     await env.DB.prepare(`DELETE FROM ${table}`).run();
   await env.DB.prepare('UPDATE nodes SET hidden = 0').run();
 });

@@ -1,5 +1,6 @@
 import { and, desc, eq, lt, or, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
+import { activeProfile } from '../security/access';
 import { nodes, profiles, topics } from './schema';
 import type { TopicInput, TopicCursor } from '../lib/contracts';
 
@@ -100,7 +101,13 @@ export function repository(binding: D1Database) {
       const node = db
         .select({ id: nodes.id })
         .from(nodes)
-        .where(and(eq(nodes.id, input.nodeId), eq(nodes.hidden, false)));
+        .where(
+          and(
+            eq(nodes.id, input.nodeId),
+            eq(nodes.hidden, false),
+            activeProfile(authorId),
+          ),
+        );
       const now = Date.now();
       const result =
         await db.run(sql`INSERT INTO topics (id, author_id, node_id, title, body, status, created_at, updated_at, request_id)

@@ -3,6 +3,7 @@ import { APIError } from 'better-auth/api';
 import { drizzleAdapter } from '@better-auth/drizzle-adapter';
 import { drizzle } from 'drizzle-orm/d1';
 import * as schema from '../db/auth-schema';
+import { accessFor } from '../security/access';
 import { authOptions } from './options';
 import { localMailboxAllowed, sendAuthMail } from './mail';
 
@@ -63,6 +64,16 @@ export function createAuth(
         : {}),
     },
     databaseHooks: {
+      session: {
+        create: {
+          before: async (session) => {
+            const access = await accessFor(env.DB, session.userId);
+            if (!access || access.banned)
+              throw new APIError('FORBIDDEN', { message: '账户已停用' });
+            return { data: session };
+          },
+        },
+      },
       user: {
         create: {
           before: async (user) => {
@@ -85,8 +96,11 @@ export function createAuth(
 }
 export async function getSession(env: Env, request: Request) {
   if (!authEnabled(env, request.url)) return null;
-  return createAuth(env).api.getSession({
+  const session = await createAuth(env).api.getSession({
     headers: request.headers,
     query: { disableRefresh: true },
   });
+  if (!session) return null;
+  const access = await accessFor(env.DB, session.user.id);
+  return access && !access.banned ? { ...session, access } : null;
 }

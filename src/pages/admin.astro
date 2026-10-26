@@ -1,0 +1,27 @@
+---
+import { env } from 'cloudflare:workers';
+import Layout from '../layouts/Layout.astro';
+import AdminDashboard from '../components/AdminDashboard';
+import { getSession } from '../auth/server';
+const session = await getSession(env, Astro.request);
+if (!session) return Astro.redirect('/login');
+const allowed = session.user.emailVerified && session.access.role !== 'member';
+if (!allowed) Astro.response.status = 403;
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+---
+
+<Layout title="管理后台">
+  <section class="intro">
+    <div class="eyebrow">COMMUNITY OPERATIONS</div>
+    <h1>管理后台</h1>
+  </section>
+  {allowed ? (
+    <AdminDashboard
+      role={session.access.role}
+      actorId={session.user.id}
+      client:load
+    />
+  ) : (
+    <section class="panel padded">需要管理员或版主权限。</section>
+  )}
+</Layout>

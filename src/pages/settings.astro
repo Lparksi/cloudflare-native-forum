@@ -28,6 +28,13 @@ Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
           我的收藏 →
         </a>
       </p>
+      {session.access.role !== 'member' && (
+        <p class="account-shortcuts">
+          <a href="/admin" class="text-link">
+            管理后台 →
+          </a>
+        </p>
+      )}
       <SignOut client:load />
     </section>
   </div>

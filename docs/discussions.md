@@ -66,6 +66,6 @@ Markdown 图片只按 sanitizer 允许的协议输出；外部图片由浏览器
 
 测试覆盖 XSS/危险协议/伪造 Footer、预览与 SSR、陌生用户写拒绝、跨作者越权、旧版本冲突、重复与并发回复、楼层游标、删除占位、计数及故障回滚、点赞去重、收藏隔离、隐藏父级传播，以及已有数据的迁移保留。实际浏览器覆盖桌面和移动端完整流程。
 
-尚未做远端 D1、Cloudflare Test 或 Production 验证；真实邮件投递仍未配置。当前没有新增管理员/版主权限，没有公开写入授权。
+尚未做远端 D1、Cloudflare Test 或 Production 验证；真实邮件投递仍未配置。Phase 4 已加入管理员/版主、封禁与审核，见 [管理与反滥用](moderation.md)；仍没有公开写入授权。
 
 参考安全顺序：[rehype-sanitize](https://github.com/rehypejs/rehype-sanitize)、[rehype-highlight](https://github.com/rehypejs/rehype-highlight#example-sanitization)、[remark-rehype](https://github.com/remarkjs/remark-rehype#security)。

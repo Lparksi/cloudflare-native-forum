@@ -26,7 +26,8 @@
     "check:metadata": "node scripts/check-metadata.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
     "auth:setup": "node scripts/setup-local-auth.mjs",
-    "auth:schema": "auth generate --config ./scripts/auth-schema.config.ts --adapter drizzle --dialect sqlite --output ./src/db/auth-schema.ts --yes"
+    "auth:schema": "auth generate --config ./scripts/auth-schema.config.ts --adapter drizzle --dialect sqlite --output ./src/db/auth-schema.ts --yes",
+    "admin:bootstrap": "node scripts/bootstrap-admin.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.2",

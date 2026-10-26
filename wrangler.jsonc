@@ -16,6 +16,10 @@
   "send_email": [{ "name": "AUTH_EMAIL" }],
   "vars": {
     "APP_ENV": "local",
+    "TURNSTILE_MODE": "local",
+    "TURNSTILE_SITE_KEY": "",
+    "TOPIC_RATE_LIMIT": "5",
+    "REPLY_RATE_LIMIT": "20",
     "AUTH_MAIL_MODE": "local",
     "BETTER_AUTH_URL": "http://127.0.0.1:4321",
     "AUTH_MAIL_FROM": "noreply@example.invalid",
@@ -31,10 +35,14 @@
   "env": {
     "test": {
       "name": "cloudflare-native-forum-test",
-      "secrets": { "required": ["BETTER_AUTH_SECRET"] },
+      "secrets": { "required": ["BETTER_AUTH_SECRET", "TURNSTILE_SECRET"] },
       "send_email": [{ "name": "AUTH_EMAIL" }],
       "vars": {
         "APP_ENV": "test",
+        "TURNSTILE_MODE": "disabled",
+        "TURNSTILE_SITE_KEY": "",
+        "TOPIC_RATE_LIMIT": "5",
+        "REPLY_RATE_LIMIT": "20",
         "AUTH_MAIL_MODE": "disabled",
         "BETTER_AUTH_URL": "https://test.example.invalid",
         "AUTH_MAIL_FROM": "noreply@example.invalid",
@@ -50,10 +58,14 @@
     },
     "production": {
       "name": "cloudflare-native-forum-production",
-      "secrets": { "required": ["BETTER_AUTH_SECRET"] },
+      "secrets": { "required": ["BETTER_AUTH_SECRET", "TURNSTILE_SECRET"] },
       "send_email": [{ "name": "AUTH_EMAIL" }],
       "vars": {
         "APP_ENV": "production",
+        "TURNSTILE_MODE": "disabled",
+        "TURNSTILE_SITE_KEY": "",
+        "TOPIC_RATE_LIMIT": "5",
+        "REPLY_RATE_LIMIT": "20",
         "AUTH_MAIL_MODE": "disabled",
         "BETTER_AUTH_URL": "https://forum.example.invalid",
         "AUTH_MAIL_FROM": "noreply@example.invalid",

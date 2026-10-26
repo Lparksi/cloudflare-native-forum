@@ -826,3 +826,56 @@ fieldset {
     flex-direction: column;
   }
 }
+.challenge {
+  margin: 16px 0;
+}
+.challenge p {
+  font-size: 11px;
+}
+.report-control {
+  font-size: 12px;
+  margin: 10px 0;
+}
+.report-control .composer {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.admin-tabs [aria-current='page'] {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+.admin-row {
+  margin-top: 20px;
+}
+.admin-form {
+  max-width: 620px;
+}
+.admin-form .button {
+  margin: 0 12px 10px 0;
+}
+.admin-form input[type='checkbox'] {
+  display: inline-block;
+  width: auto;
+}
+.admin-raw {
+  max-height: 260px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--bg);
+  padding: 16px;
+  font-size: 12px;
+}
+.admin-pagination {
+  display: flex;
+  gap: 20px;
+  margin-top: 20px;
+}

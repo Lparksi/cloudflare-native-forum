@@ -1,4 +1,5 @@
 import { useState, type SubmitEvent } from 'react';
+import Challenge from './Challenge';
 import MarkdownEditor from './MarkdownEditor';
 type NodeOption = { id: string; name: string };
 type EditableTopic = {
@@ -14,6 +15,8 @@ export default function TopicComposer({
   nodes: NodeOption[];
   topic?: EditableTopic;
 }) {
+  const [challengeToken, setToken] = useState('');
+  const [challengeVersion, setChallengeVersion] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [requestId, setRequestId] = useState('');
@@ -29,7 +32,10 @@ export default function TopicComposer({
         topic ? `/api/v1/topics/${topic.id}` : '/api/v1/topics',
         {
           method: topic ? 'PATCH' : 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-turnstile-token': challengeToken,
+          },
           body: JSON.stringify({
             title: form.get('title'),
             body: form.get('body'),
@@ -50,6 +56,8 @@ export default function TopicComposer({
       setError('网络错误，请重试；重复提交不会创建重复主题。');
     } finally {
       setBusy(false);
+      setToken('');
+      setChallengeVersion((value) => value + 1);
     }
   }
   return (
@@ -89,9 +97,16 @@ export default function TopicComposer({
             {error}
           </p>
         )}
+        {!topic && (
+          <Challenge
+            action="topic"
+            version={challengeVersion}
+            onToken={setToken}
+          />
+        )}
         <button
           className="button"
-          disabled={busy || (!topic && nodes.length === 0)}
+          disabled={busy || (!topic && (nodes.length === 0 || !challengeToken))}
         >
           {busy ? '保存中…' : topic ? '保存主题' : '发布主题 →'}
         </button>

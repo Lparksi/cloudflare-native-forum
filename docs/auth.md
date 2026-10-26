@@ -72,8 +72,12 @@ Cloudflare Vite 在 build 时会为本地 preview 将 `.dev.vars` 复制到 **di
 
 ## 验证
 
-`pnpm test` 使用独立 Miniflare D1；`pnpm test:e2e` 使用本机构建预览和本机收件箱，创建测试账户与主题。CI 在类型检查和 build 前运行 auth:setup，使用随机本地 secret，不读取生产凭据。
+`pnpm test` 使用独立 Miniflare D1；`pnpm test:e2e` 使用独立临时 D1、本机构建预览和开发收件箱，创建测试账户与主题，不使用日常开发数据库。CI 在类型检查和 build 前运行 auth:setup，使用随机本地 secret，不读取生产凭据。
 
 覆盖注册与验证门槛、重发、登录/退出、密码哈希、Cookie 属性、防篡改、Session 过期、重置时效/重放/并发/撤销、D1 保存故障、跨站请求和恶意回调、持久化限流、远端禁用与开发邮箱隔离、HTTPS Cookie 和发信绑定替身。桌面/手机均执行完整 UI 流程。
 
 参考：[Better Auth Drizzle](https://better-auth.com/docs/adapters/drizzle)、[邮件与密码](https://better-auth.com/docs/authentication/email-password)、[限流](https://better-auth.com/docs/concepts/rate-limit)、[Cloudflare Email Workers API](https://developers.cloudflare.com/email-service/api/send-emails/workers-api/)。以固定版本发布包、官方文档和实际测试共同核实。
+
+## Phase 4 补充
+
+注册、登录、申请重置与重发验证在 Better Auth 前执行挑战校验及每 IP/动作每分钟 10 次尝试限流，库自身的更严格限流仍保留。邮件重置链接继续由库校验单次令牌。封禁会在同一数据库语句内撤销全部 Session，并通过 Session 插入触发器拒绝并发登录；每次取得 Session 也重新检查账户状态。角色在独立 account_access 表管理，不启用 Better Auth admin 插件的额外高权限端点。详见 [管理与安全](moderation.md)。

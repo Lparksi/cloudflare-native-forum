@@ -8,7 +8,7 @@
 | Test       | cloudflare-native-forum-test       | 独立占位 ID，未创建        | test       | 403                                   |
 | Production | cloudflare-native-forum-production | 独立占位 ID，未创建        | production | 403                                   |
 
-`workers_dev=false`、`preview_urls=false`，未绑定域名；占位 ID 不应被当成真实资源。请勿把根 Local 配置部署到 Cloudflare。不同环境绝不共用 D1、R2、Secrets。当前无 R2/KV/Turnstile 或远端资源访问。认证需要本地随机 Secret 和开发收件箱；AUTH_EMAIL 绑定已声明但尚未配置真实投递，Test/Production 的 AUTH_MAIL_MODE 默认 disabled。详见 [认证配置](auth.md)。
+`workers_dev=false`、`preview_urls=false`，未绑定域名；占位 ID 不应被当成真实资源。请勿把根 Local 配置部署到 Cloudflare。不同环境绝不共用 D1、R2、Secrets。当前无 R2/KV 或远端资源访问；Turnstile 仅本地模拟与 Siteverify 适配，未创建真实站点。认证需要本地随机 Secret 和开发收件箱；AUTH_EMAIL 绑定已声明但尚未配置真实投递，Test/Production 的 AUTH_MAIL_MODE 默认 disabled。详见 [认证配置](auth.md)。
 
 ## 数据库迁移
 
@@ -18,14 +18,14 @@ pnpm db:migrate
 pnpm db:seed
 ```
 
-前两项分别生成迁移和应用到本机；seed 明确仅供本地。Schema 修改后创建增量迁移，审查 SQL，不修改已应用迁移。SQL CHECK / 外键和唯一约束属于数据完整性契约，不用应用层检查替代。0002还包含手工维护的计数触发器；今后修改或重建关联表时必须审查并保留，不能盲用Drizzle重建SQL。详见 [讨论设计](discussions.md)。
+前两项分别生成迁移和应用到本机；seed 明确仅供本地。Schema 修改后创建增量迁移，审查 SQL，不修改已应用迁移。SQL CHECK / 外键和唯一约束属于数据完整性契约，不用应用层检查替代。0002包含手工维护的计数触发器，0003/0004包含账户状态、最后管理员和初始化授权触发器；今后修改或重建关联表时必须审查并保留，不能盲用Drizzle重建SQL。详见 [讨论设计](discussions.md)。
 
 ## 以后部署 Test 的流程（本轮未执行）
 
 1. 经项目所有者确认账号、资源和成本，手工创建独立的 Test D1；将真实 ID 写入 env.test。不要用本机 UUID 自动创建。
 2. 在未部署/无数据环境验证迁移。已有数据先备份，再查看 pending migrations。
 3. 使用 CLOUDFLARE_ENV=test 构建，确保构建产物配置的名称、APP_ENV、DB ID 均指向 Test；核对 `dist/server/wrangler.json`（以适配器实际输出为准）。
-4. 显式使用 `--env test` 应用远端迁移。禁止对远端执行 db/seed.sql。正式权限、Turnstile 与业务限流落地前公共写入维持关闭。
+4. 显式使用 `--env test` 应用远端迁移。禁止对远端执行 db/seed.sql。权限与业务限流已实现，但真实 Turnstile、邮件和部署隔离验收前公共写入维持关闭。
 5. 检查类型、测试、许可、Secret、构建元信息和 dry-run 产物。仅在授权环境发布，之后验证读取、404、Footer SHA、计时和数据库隔离。
 
 真实远端命令必须在资源 ID 确认后按当前 Wrangler 文档执行；此文档不含可误执行的默认部署脚本。
@@ -47,3 +47,7 @@ pnpm db:seed
 ## CI 和本机验证的区别
 
 GitHub Actions 只做安装、类型、Lint、格式、测试、许可证、构建元信息、基础 Secret 和 Gitleaks 扫描、构建及本机 E2E。尚未推送远端，因此不能将本机命令通过等同于 GitHub Actions 成功。Action 依赖的固定主版本后续可更新为经核验的 commit pin。
+
+## 本地管理员
+
+先注册并验证邮箱，再执行 `pnpm admin:bootstrap <邮箱>`。命令只操作本机 D1；已有活跃管理员时拒绝再次初始化。常规角色调整从 `/admin` 完成，详见 [管理配置](moderation.md)。不得将 E2E 的隔离数据库或本机模拟挑战模式用于公开环境。

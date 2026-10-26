@@ -1,4 +1,5 @@
 import { useState, type SubmitEvent } from 'react';
+import Challenge from './Challenge';
 import MarkdownEditor from './MarkdownEditor';
 type EditableReply = {
   id: string;
@@ -15,6 +16,8 @@ export default function ReplyComposer({
   reply?: EditableReply;
   quote?: string;
 }) {
+  const [challengeToken, setToken] = useState('');
+  const [challengeVersion, setChallengeVersion] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [requestId, setRequestId] = useState('');
@@ -32,7 +35,10 @@ export default function ReplyComposer({
           : `/api/v1/topics/${topicId}/replies`,
         {
           method: reply ? 'PATCH' : 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-turnstile-token': challengeToken,
+          },
           body: JSON.stringify({
             body: form.get('body'),
             ...(reply ? { revision: reply.revision } : { requestId: id }),
@@ -54,6 +60,8 @@ export default function ReplyComposer({
       setError('网络错误，请重试；相同提交不会重复占用楼层。');
     } finally {
       setBusy(false);
+      setToken('');
+      setChallengeVersion((value) => value + 1);
     }
   }
   return (
@@ -69,7 +77,17 @@ export default function ReplyComposer({
             {error}
           </p>
         )}
-        <button className="button" disabled={busy}>
+        {!reply && (
+          <Challenge
+            action="reply"
+            version={challengeVersion}
+            onToken={setToken}
+          />
+        )}
+        <button
+          className="button"
+          disabled={busy || (!reply && !challengeToken)}
+        >
           {busy ? '保存中…' : reply ? '保存回复' : '发布回复'}
         </button>
       </fieldset>

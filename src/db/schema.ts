@@ -162,3 +162,94 @@ export const bookmarks = sqliteTable(
     index('bookmarks_topic').on(t.topicId),
   ],
 );
+
+export const accountAccess = sqliteTable(
+  'account_access',
+  {
+    userId: text('user_id')
+      .primaryKey()
+      .references(() => user.id),
+    role: text('role', { enum: ['member', 'moderator', 'admin'] })
+      .notNull()
+      .default('member'),
+    banned: integer('banned', { mode: 'boolean' }).notNull().default(false),
+    banReason: text('ban_reason'),
+    revision: integer('revision').notNull().default(1),
+  },
+  (t) => [
+    check(
+      'account_access_valid',
+      sql`${t.role} IN ('member','moderator','admin') AND ${t.banned} IN (0,1) AND ${t.revision} > 0`,
+    ),
+  ],
+);
+export const reports = sqliteTable(
+  'reports',
+  {
+    id: text('id').primaryKey(),
+    reporterId: text('reporter_id')
+      .notNull()
+      .references(() => user.id),
+    topicId: text('topic_id').references(() => topics.id),
+    replyId: text('reply_id').references(() => replies.id),
+    reason: text('reason').notNull(),
+    status: text('status', { enum: ['open', 'resolved', 'dismissed'] })
+      .notNull()
+      .default('open'),
+    createdAt: integer('created_at').notNull(),
+    resolvedBy: text('resolved_by').references(() => user.id),
+    resolution: text('resolution'),
+    revision: integer('revision').notNull().default(1),
+  },
+  (t) => [
+    check(
+      'reports_target',
+      sql`(${t.topicId} IS NOT NULL) != (${t.replyId} IS NOT NULL)`,
+    ),
+    check(
+      'reports_status',
+      sql`${t.status} IN ('open','resolved','dismissed')`,
+    ),
+    uniqueIndex('reports_open_topic')
+      .on(t.reporterId, t.topicId)
+      .where(sql`${t.status} = 'open'`),
+    uniqueIndex('reports_open_reply')
+      .on(t.reporterId, t.replyId)
+      .where(sql`${t.status} = 'open'`),
+    index('reports_status_created').on(t.status, t.createdAt, t.id),
+  ],
+);
+export const moderationLogs = sqliteTable(
+  'moderation_logs',
+  {
+    id: text('id').primaryKey(),
+    actorId: text('actor_id')
+      .notNull()
+      .references(() => user.id),
+    action: text('action').notNull(),
+    targetKind: text('target_kind').notNull(),
+    targetId: text('target_id').notNull(),
+    reason: text('reason').notNull(),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [index('moderation_logs_created').on(t.createdAt, t.id)],
+);
+export const writeLimits = sqliteTable(
+  'write_limits',
+  {
+    key: text('key').primaryKey(),
+    count: integer('count').notNull(),
+    expiresAt: integer('expires_at').notNull(),
+  },
+  (t) => [index('write_limits_expiry').on(t.expiresAt)],
+);
+export const localChallenges = sqliteTable(
+  'local_challenges',
+  {
+    token: text('token').primaryKey(),
+    action: text('action').notNull(),
+    ip: text('ip').notNull(),
+    expiresAt: integer('expires_at').notNull(),
+  },
+  (t) => [index('local_challenges_expiry').on(t.expiresAt)],
+);

@@ -63,3 +63,55 @@ export const replyCursor = z.coerce
 export type ReplyInput = z.infer<typeof replyInput>;
 export type TopicEditInput = z.infer<typeof topicEditInput>;
 export type ReplyEditInput = z.infer<typeof replyEditInput>;
+
+export const moderationReason = z
+  .string()
+  .trim()
+  .min(3)
+  .max(500)
+  .refine((value) => !value.includes('\0'));
+export const reportInput = z
+  .object({
+    kind: z.enum(['topic', 'reply']),
+    targetId: z.string().min(1).max(128),
+    reason: moderationReason,
+  })
+  .strict();
+export const roleInput = z
+  .object({
+    role: z.enum(['member', 'moderator', 'admin']),
+    revision: revisionInput.shape.revision,
+    reason: moderationReason,
+  })
+  .strict();
+export const banInput = z
+  .object({
+    banned: z.boolean(),
+    revision: revisionInput.shape.revision,
+    reason: moderationReason,
+  })
+  .strict();
+export const visibilityInput = z
+  .object({
+    hidden: z.boolean(),
+    revision: revisionInput.shape.revision,
+    reason: moderationReason,
+  })
+  .strict();
+export const resolveInput = z
+  .object({
+    status: z.enum(['resolved', 'dismissed']),
+    revision: revisionInput.shape.revision,
+    reason: moderationReason,
+  })
+  .strict();
+export const nodeInput = z
+  .object({
+    slug: z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/),
+    name: z.string().trim().min(1).max(80),
+    description: z.string().trim().max(1000),
+    sortOrder: z.number().int().min(0).max(10000),
+    hidden: z.boolean(),
+    reason: moderationReason,
+  })
+  .strict();

@@ -1,4 +1,6 @@
 import { useState, type SubmitEvent } from 'react';
+import Challenge from './Challenge';
+import type { ChallengeAction } from '../security/turnstile';
 import { authClient } from '../auth/client';
 export type AuthMode = 'register' | 'login' | 'forgot' | 'reset' | 'resend';
 const labels: Record<AuthMode, string> = {
@@ -15,6 +17,18 @@ export default function AuthForm({
   mode: AuthMode;
   token?: string;
 }) {
+  const [challengeToken, setToken] = useState('');
+  const [challengeVersion, setChallengeVersion] = useState(0);
+  const action: ChallengeAction | null =
+    mode === 'register'
+      ? 'signup'
+      : mode === 'login'
+        ? 'login'
+        : mode === 'forgot'
+          ? 'password_reset'
+          : mode === 'resend'
+            ? 'verify_email'
+            : null;
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -29,24 +43,36 @@ export default function AuthForm({
     try {
       const result =
         mode === 'register'
-          ? await authClient.signUp.email({
-              name: String(form.get('name')),
-              email,
-              password,
-              callbackURL: '/login?verified=1',
-            })
+          ? await authClient.signUp.email(
+              {
+                name: String(form.get('name')),
+                email,
+                password,
+                callbackURL: '/login?verified=1',
+              },
+              { headers: { 'x-turnstile-token': challengeToken } },
+            )
           : mode === 'login'
-            ? await authClient.signIn.email({ email, password })
+            ? await authClient.signIn.email(
+                { email, password },
+                { headers: { 'x-turnstile-token': challengeToken } },
+              )
             : mode === 'forgot'
-              ? await authClient.requestPasswordReset({
-                  email,
-                  redirectTo: '/reset-password',
-                })
-              : mode === 'resend'
-                ? await authClient.sendVerificationEmail({
+              ? await authClient.requestPasswordReset(
+                  {
                     email,
-                    callbackURL: '/login?verified=1',
-                  })
+                    redirectTo: '/reset-password',
+                  },
+                  { headers: { 'x-turnstile-token': challengeToken } },
+                )
+              : mode === 'resend'
+                ? await authClient.sendVerificationEmail(
+                    {
+                      email,
+                      callbackURL: '/login?verified=1',
+                    },
+                    { headers: { 'x-turnstile-token': challengeToken } },
+                  )
                 : await authClient.resetPassword({
                     token,
                     newPassword: password,
@@ -82,6 +108,10 @@ export default function AuthForm({
       setError('网络错误，请稍后重试。');
     } finally {
       setBusy(false);
+      if (action) {
+        setToken('');
+        setChallengeVersion((value) => value + 1);
+      }
     }
   }
   return (
@@ -132,10 +162,21 @@ export default function AuthForm({
           {message}
         </p>
       )}
+      {action && !message && (
+        <Challenge
+          action={action}
+          version={challengeVersion}
+          onToken={setToken}
+        />
+      )}
       {!message && (
         <button
           className="button"
-          disabled={busy || (mode === 'reset' && !token)}
+          disabled={
+            busy ||
+            (action !== null && !challengeToken) ||
+            (mode === 'reset' && !token)
+          }
         >
           {busy ? '处理中…' : labels[mode]}
         </button>

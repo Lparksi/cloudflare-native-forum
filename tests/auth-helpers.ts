@@ -1,6 +1,10 @@
 import { Miniflare } from 'miniflare';
 import { readFileSync, readdirSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
+import {
+  issueLocalChallenge,
+  type ChallengeAction,
+} from '../src/security/turnstile';
 import { authRoutes } from '../src/auth/handler';
 
 export const password = 'Test password for local auth 42!';
@@ -14,6 +18,11 @@ export async function setupDatabase() {
   const env: Env = {
     DB: await mf.getD1Database('DB'),
     APP_ENV: 'local',
+    TURNSTILE_MODE: 'local',
+    TURNSTILE_SITE_KEY: '',
+    TURNSTILE_SECRET: '',
+    TOPIC_RATE_LIMIT: '1000',
+    REPLY_RATE_LIMIT: '1000',
     AUTH_MAIL_MODE: 'local',
     BETTER_AUTH_URL: 'http://localhost',
     AUTH_MAIL_FROM: 'noreply@example.invalid',
@@ -38,13 +47,28 @@ export async function setupDatabase() {
     await env.DB.prepare(statement).run();
   return { env, mf };
 }
-export function authRequest(
+export async function authRequest(
   env: Env,
   path: string,
   body?: unknown,
   cookie = '',
   ip = '192.0.2.1',
 ) {
+  const action: Record<string, ChallengeAction> = {
+    '/sign-up/email': 'signup',
+    '/sign-in/email': 'login',
+    '/request-password-reset': 'password_reset',
+    '/send-verification-email': 'verify_email',
+  };
+  const proof =
+    body !== undefined && action[path]
+      ? await testProof(
+          env,
+          `${env.BETTER_AUTH_URL}/api/auth${path}`,
+          action[path],
+          ip,
+        )
+      : '';
   return authRoutes.request(
     `${env.BETTER_AUTH_URL}/api/auth${path}`,
     {
@@ -54,6 +78,7 @@ export function authRequest(
         'Content-Type': 'application/json',
         Cookie: cookie,
         'cf-connecting-ip': ip,
+        'x-turnstile-token': proof,
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     },
@@ -112,4 +137,19 @@ export async function registerVerified(
   );
   if (login.status !== 200) throw new Error(`Login failed: ${login.status}`);
   return { email, cookie: cookies(login), login };
+}
+
+export async function testProof(
+  env: Env,
+  url: string,
+  action: ChallengeAction,
+  ip?: string,
+) {
+  return (
+    (await issueLocalChallenge(
+      env,
+      new Request(url, { headers: ip ? { 'cf-connecting-ip': ip } : {} }),
+      action,
+    )) ?? ''
+  );
 }

@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, gt, lt, or, sql } from 'drizzle-orm';
+import { activeProfile } from '../security/access';
 import { drizzle } from 'drizzle-orm/d1';
 import {
   bookmarks,
@@ -71,6 +72,7 @@ export function discussions(binding: D1Database) {
           and(
             eq(topics.id, id),
             eq(topics.authorId, authorId),
+            activeProfile(authorId),
             eq(topics.revision, input.revision),
             sql`${topics.id} IN (${visibleTopic(id)})`,
           ),
@@ -90,6 +92,7 @@ export function discussions(binding: D1Database) {
           and(
             eq(topics.id, id),
             eq(topics.authorId, authorId),
+            activeProfile(authorId),
             eq(topics.revision, revision),
             sql`${topics.id} IN (${visibleTopic(id)})`,
           ),
@@ -154,7 +157,7 @@ export function discussions(binding: D1Database) {
       await db.run(sql`INSERT INTO replies (id, topic_id, author_id, floor, body, request_id, created_at, updated_at)
         SELECT ${id}, topics.id, ${authorId}, topics.next_reply_floor + 1, ${input.body}, ${input.requestId}, ${now}, ${now}
         FROM topics INNER JOIN nodes ON topics.node_id = nodes.id
-        WHERE topics.id = ${topicId} AND topics.status = 'published' AND nodes.hidden = 0
+        WHERE topics.id = ${topicId} AND topics.status = 'published' AND nodes.hidden = 0 AND ${activeProfile(authorId)}
         ON CONFLICT(author_id, request_id) DO NOTHING`);
       const existing = (
         await db
@@ -170,6 +173,7 @@ export function discussions(binding: D1Database) {
           .where(
             and(
               eq(replies.authorId, authorId),
+              activeProfile(authorId),
               eq(replies.requestId, input.requestId),
               eq(replies.status, 'published'),
               visible,
@@ -199,6 +203,7 @@ export function discussions(binding: D1Database) {
           and(
             eq(replies.id, id),
             eq(replies.authorId, authorId),
+            activeProfile(authorId),
             eq(replies.status, 'published'),
             eq(replies.revision, input.revision),
             sql`${replies.topicId} IN (${db.select({ id: topics.id }).from(topics).innerJoin(nodes, eq(topics.nodeId, nodes.id)).where(visible)})`,
@@ -219,6 +224,7 @@ export function discussions(binding: D1Database) {
           and(
             eq(replies.id, id),
             eq(replies.authorId, authorId),
+            activeProfile(authorId),
             eq(replies.status, 'published'),
             eq(replies.revision, revision),
             sql`${replies.topicId} IN (${db.select({ id: topics.id }).from(topics).innerJoin(nodes, eq(topics.nodeId, nodes.id)).where(visible)})`,
@@ -256,7 +262,7 @@ export function discussions(binding: D1Database) {
       const table = kind === 'vote' ? topicVotes : bookmarks;
       if (active) {
         await db.run(sql`INSERT INTO ${table} (topic_id, profile_id, created_at) SELECT topics.id, ${profileId}, ${Date.now()}
-          FROM topics INNER JOIN nodes ON topics.node_id = nodes.id WHERE topics.id = ${topicId} AND topics.status = 'published' AND nodes.hidden = 0
+          FROM topics INNER JOIN nodes ON topics.node_id = nodes.id WHERE topics.id = ${topicId} AND topics.status = 'published' AND nodes.hidden = 0 AND ${activeProfile(profileId)}
           ON CONFLICT DO NOTHING`);
       } else {
         await db
@@ -265,6 +271,7 @@ export function discussions(binding: D1Database) {
             and(
               eq(table.topicId, topicId),
               eq(table.profileId, profileId),
+              activeProfile(profileId),
               sql`${table.topicId} IN (${visibleTopic(topicId)})`,
             ),
           );

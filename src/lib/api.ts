@@ -17,6 +17,22 @@ import {
   previewInput,
   replyCursor,
 } from './contracts';
+import { moderation } from '../db/moderation';
+import { accessFor } from '../security/access';
+import {
+  actions,
+  issueLocalChallenge,
+  verifyTurnstile,
+} from '../security/turnstile';
+import { clientIp, postingLimit, RateLimited } from '../security/limits';
+import {
+  reportInput,
+  roleInput,
+  banInput,
+  visibilityInput,
+  resolveInput,
+  nodeInput,
+} from './contracts';
 import { renderMarkdown } from './markdown';
 
 type ApiEnv = {
@@ -69,6 +85,7 @@ api.use('*', async (c, next) => {
     return c.json(error('INVALID_ORIGIN', '请求来源无效'), 403);
   if (!c.req.header('content-type')?.startsWith('application/json'))
     return c.json(error('INVALID_CONTENT_TYPE', '请使用 JSON'), 415);
+  if (c.req.path === '/api/v1/security/challenge') return next();
   const session = await getSession(c.env, c.req.raw);
   if (!session?.user.emailVerified)
     return c.json(error('UNAUTHORIZED', '请先验证邮箱并登录'), 401);
@@ -80,6 +97,52 @@ api.use(
   bodyLimit({
     maxSize: 100000,
     onError: (c) => c.json(error('BODY_TOO_LARGE', '内容过大'), 413),
+  }),
+);
+api.post('/security/challenge', async (c) => {
+  const { action } = await input(
+    c,
+    z.object({ action: z.enum(actions) }).strict(),
+  );
+  const token = await issueLocalChallenge(c.env, c.req.raw, action);
+  return token
+    ? c.json({ data: { token } })
+    : c.json(error('NOT_FOUND', '不存在'), 404);
+});
+api.use('*', async (c, next) => {
+  const action =
+    c.req.method === 'POST' && c.req.path === '/api/v1/topics'
+      ? 'topic'
+      : c.req.method === 'POST' &&
+          /^\/api\/v1\/topics\/[^/]+\/replies$/.test(c.req.path)
+        ? 'reply'
+        : c.req.method === 'POST' && c.req.path === '/api/v1/reports'
+          ? 'report'
+          : null;
+  if (action) {
+    const ip = clientIp(c.req.raw);
+    if (!ip) return c.json(error('INVALID_CLIENT', '无法确认请求来源'), 403);
+    await postingLimit(c.env, action, c.get('actor').id, ip);
+    if (!(await verifyTurnstile(c.env, c.req.raw, action)))
+      return c.json(
+        error('CHALLENGE_FAILED', '验证失败或已过期，请重新验证'),
+        403,
+      );
+  }
+  await next();
+});
+api.get('/security/config', (c) =>
+  c.json({
+    data: {
+      mode:
+        c.env.TURNSTILE_MODE === 'local' &&
+        localWriteAllowed(c.env.APP_ENV, c.req.url)
+          ? 'local'
+          : c.env.TURNSTILE_MODE === 'managed'
+            ? 'managed'
+            : 'disabled',
+      siteKey: c.env.TURNSTILE_SITE_KEY,
+    },
   }),
 );
 api.get('/health', async (c) => {
@@ -230,8 +293,164 @@ api.get('/dev/mail', async (c) => {
     return c.json(error('NOT_FOUND', '不存在'), 404);
   return c.json({ data: await localMessages(c.env, c.req.query('email')) });
 });
+api.post('/reports', async (c) => {
+  const payload = await input(c, reportInput);
+  const visible =
+    payload.kind === 'topic'
+      ? await repository(c.env.DB).topic(payload.targetId)
+      : await discussions(c.env.DB).reply(payload.targetId);
+  if (!visible) return c.json(error('NOT_FOUND', '内容不存在'), 404);
+  const created = await moderation(c.env.DB).report(
+    c.get('actor').id,
+    payload.kind,
+    payload.targetId,
+    payload.reason,
+  );
+  return created
+    ? c.json({ data: { status: 'reported' } }, 201)
+    : c.json(error('CONFLICT', '已有待处理举报，或内容状态已变化'), 409);
+});
+api.use('/admin/*', async (c, next) => {
+  const session = await getSession(c.env, c.req.raw);
+  if (!session?.user.emailVerified)
+    return c.json(error('UNAUTHORIZED', '请先登录'), 401);
+  if (session.access.role === 'member')
+    return c.json(error('FORBIDDEN', '需要管理员或版主权限'), 403);
+  c.set('actor', session.user);
+  await next();
+});
+api.get('/admin/:section', async (c) => {
+  const section = z
+    .enum(['users', 'topics', 'replies', 'nodes', 'reports', 'logs'])
+    .safeParse(c.req.param('section'));
+  const after = z
+    .string()
+    .max(128)
+    .safeParse(c.req.query('after') ?? '');
+  if (!section.success || !after.success)
+    return c.json(error('INVALID_INPUT', '分页或分类无效'), 400);
+  const repo = moderation(c.env.DB),
+    actor = c.get('actor').id;
+  const rows =
+    section.data === 'topics' || section.data === 'replies'
+      ? await repo.contents(actor, section.data, after.data)
+      : await repo[section.data](actor, after.data);
+  const items = rows.slice(0, 30);
+  return c.json({
+    data: {
+      items,
+      nextCursor: rows.length > 30 ? String(items.at(-1)!.id) : null,
+    },
+  });
+});
+const moderationResult = (c: Context<ApiEnv>, ok: boolean) =>
+  ok
+    ? c.json({ data: { status: 'ok' } })
+    : c.json(error('CONFLICT', '状态已变化或不允许此操作，请刷新'), 409);
+api.patch('/admin/users/:id/role', async (c) => {
+  const actor = c.get('actor').id;
+  if (!(await moderation(c.env.DB).isStaff(actor, true)))
+    return c.json(error('FORBIDDEN', '只有管理员可以授予角色'), 403);
+  const value = await input(c, roleInput);
+  return moderationResult(
+    c,
+    await moderation(c.env.DB).role(
+      actor,
+      c.req.param('id'),
+      value.role,
+      value.revision,
+      value.reason,
+    ),
+  );
+});
+api.patch('/admin/users/:id/ban', async (c) => {
+  const value = await input(c, banInput);
+  const actor = c.get('actor').id,
+    target = await accessFor(c.env.DB, c.req.param('id'));
+  if (!target) return c.json(error('NOT_FOUND', '用户不存在'), 404);
+  const access = await accessFor(c.env.DB, actor);
+  if (
+    target.userId === actor ||
+    target.role === 'admin' ||
+    (access?.role === 'moderator' && target.role !== 'member')
+  )
+    return c.json(error('FORBIDDEN', '不能封禁自己或同级/更高权限账户'), 403);
+  return moderationResult(
+    c,
+    await moderation(c.env.DB).ban(
+      actor,
+      target.userId,
+      value.banned,
+      value.revision,
+      value.reason,
+    ),
+  );
+});
+for (const kind of ['topics', 'replies'] as const)
+  api.patch(`/admin/${kind}/:id/visibility`, async (c) => {
+    const value = await input(c, visibilityInput);
+    return moderationResult(
+      c,
+      await moderation(c.env.DB).visibility(
+        c.get('actor').id,
+        kind,
+        c.req.param('id')!,
+        value.hidden,
+        value.revision,
+        value.reason,
+      ),
+    );
+  });
+api.patch('/admin/reports/:id', async (c) => {
+  const value = await input(c, resolveInput);
+  return moderationResult(
+    c,
+    await moderation(c.env.DB).resolve(
+      c.get('actor').id,
+      c.req.param('id'),
+      value.status,
+      value.revision,
+      value.reason,
+    ),
+  );
+});
+api.post('/admin/nodes', async (c) => {
+  const value = await input(c, nodeInput);
+  if (!(await moderation(c.env.DB).isStaff(c.get('actor').id, true)))
+    return c.json(error('FORBIDDEN', '只有管理员可以管理节点'), 403);
+  const id = crypto.randomUUID();
+  return moderationResult(
+    c,
+    await moderation(c.env.DB).saveNode(
+      c.get('actor').id,
+      id,
+      value,
+      value.reason,
+      true,
+    ),
+  );
+});
+api.patch('/admin/nodes/:id', async (c) => {
+  const value = await input(c, nodeInput);
+  if (!(await moderation(c.env.DB).isStaff(c.get('actor').id, true)))
+    return c.json(error('FORBIDDEN', '只有管理员可以管理节点'), 403);
+  return moderationResult(
+    c,
+    await moderation(c.env.DB).saveNode(
+      c.get('actor').id,
+      c.req.param('id'),
+      value,
+      value.reason,
+      false,
+    ),
+  );
+});
 api.notFound((c) => c.json(error('NOT_FOUND', 'API 不存在'), 404));
 api.onError((err, c) => {
+  if (err instanceof RateLimited) {
+    c.header('Retry-After', String(err.retryAfter));
+    return c.json(error('RATE_LIMITED', err.message), 429);
+  }
   if (err instanceof HTTPException)
     return c.json(error('INVALID_INPUT', err.message), err.status);
   console.error(JSON.stringify({ event: 'api_error', name: err.name }));
