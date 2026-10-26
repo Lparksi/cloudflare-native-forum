@@ -15,6 +15,8 @@ export default defineConfig({
   integrations: [react()],
   session: false,
   vite: {
+    // Hidden maps are local evidence for the license inventory, never uploaded.
+    build: { sourcemap: process.env.LICENSE_AUDIT === '1' ? 'hidden' : false },
     plugins: [tailwindcss()],
     define: { __BUILD_INFO__: JSON.stringify(resolveBuildInfo()) },
   },

@@ -1,0 +1,82 @@
+{
+  "scanner": "ScanCode Toolkit 32.4.1",
+  "status": "pending-human-review",
+  "disclaimer": "Detection report only; all findings require human review. Baseline records observations, not approval. Scanning is not a legal guarantee.",
+  "findings": [
+    {
+      "path": "browser/_astro/Layout.CWAKqaWW.css",
+      "expression": "mit",
+      "status": "pending-human-review"
+    },
+    {
+      "path": "source/LICENSE",
+      "expression": "mit",
+      "status": "pending-human-review"
+    },
+    {
+      "path": "source/package.json",
+      "expression": "mit",
+      "status": "pending-human-review"
+    },
+    {
+      "path": "source/src/layouts/Layout.astro",
+      "expression": "mit",
+      "status": "pending-human-review"
+    },
+    {
+      "path": "source/src/pages/about.astro",
+      "expression": "mit",
+      "status": "pending-human-review"
+    },
+    {
+      "path": "source/src/vendor/webp/LICENSE.libwebp-emscripten",
+      "expression": "bsd-new AND (bsd-new AND google-patent-license-webm) AND (mit OR uoi-ncsa) AND mit AND uoi-ncsa AND (mit AND unknown)",
+      "status": "pending-human-review"
+    },
+    {
+      "path": "source/src/vendor/webp/LICENSE.playwright",
+      "expression": "apache-2.0",
+      "status": "pending-human-review"
+    },
+    {
+      "path": "source/src/vendor/webp/README.md",
+      "expression": "apache-2.0",
+      "status": "pending-human-review"
+    },
+    {
+      "path": "source/THIRD_PARTY_NOTICES.txt",
+      "expression": "mit AND apache-2.0 AND ((mit OR apache-2.0) AND mit AND apache-2.0) AND (apache-2.0 AND mit) AND (isc AND mit) AND (lgpl-3.0-plus AND apache-2.0) AND (mit AND apache-2.0) AND cc0-1.0 AND isc AND cc-by-4.0 AND blueoak-1.0.0 AND bsd-simplified AND bsd-3-clause-open-mpi AND (bsd-simplified AND (gpl-2.0 OR bsd-new)) AND bsd-new AND (gpl-2.0 OR bsd-new) AND (bsd-new AND bsd-3-clause-open-mpi AND apache-1.1) AND (bsd-simplified AND bsd-new) AND (mit AND bsd-simplified AND bsd-new) AND (mpl-2.0 AND mpl-1.1) AND (mit AND blueoak-1.0.0) AND bsd-zero AND (bsd-zero AND mit) AND (mit AND isc) AND (bsd-simplified AND bsd-3-clause-open-mpi) AND (bsd-new AND google-patent-license-webm) AND (mit OR uoi-ncsa) AND uoi-ncsa AND (mit AND unknown) AND (mit AND bsd-simplified AND cc0-1.0) AND (mit AND cc0-1.0) AND (mit AND bsd-new) AND (bsd-simplified AND mit) AND (apache-2.0 AND (mit OR apache-2.0) AND mit)",
+      "status": "pending-human-review"
+    },
+    {
+      "path": "worker/chunks/about_isjLRYs-.mjs",
+      "expression": "mit",
+      "status": "pending-human-review"
+    },
+    {
+      "path": "worker/chunks/discussions_JnvPV5tK.mjs",
+      "expression": "mit AND public-domain",
+      "status": "pending-human-review"
+    },
+    {
+      "path": "worker/chunks/Layout_DnnyT0Gc.mjs",
+      "expression": "mit",
+      "status": "pending-human-review"
+    },
+    {
+      "path": "worker/chunks/react_B9eLrrmW.mjs",
+      "expression": "mit",
+      "status": "pending-human-review"
+    },
+    {
+      "path": "worker/chunks/shorthash_Dmf1Rabm.mjs",
+      "expression": "mit",
+      "status": "pending-human-review"
+    },
+    {
+      "path": "worker/entry.mjs",
+      "expression": "mit",
+      "status": "pending-human-review"
+    }
+  ]
+}
