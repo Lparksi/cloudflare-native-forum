@@ -4,7 +4,7 @@ import type { BetterAuthOptions } from 'better-auth';
 export const authOptions = {
   appName: '边集',
   basePath: '/api/auth',
-  // Profile editing is not part of this phase; do not expose unchecked defaults.
+  // Public profiles have their own validated API; keep auth fields immutable here.
   disabledPaths: ['/update-user'],
   emailAndPassword: {
     enabled: true,

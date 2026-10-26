@@ -12,3 +12,5 @@
 - `lightningcss`、`lightningcss-*`：MPL-2.0，CSS 构建工具；其原生二进制不进入 Worker。修改并分发其 MPL 文件时，应遵守文件级源代码提供义务。上游：[Lightning CSS](https://github.com/parcel-bundler/lightningcss)。
 
 这些工具未被重新标记为 MIT。未经重新审查，不可把该例外扩大到业务运行时依赖。发布 Worker 时须同时保留随附的第三方通知；公开源码仓库应包含本文件与 THIRD_PARTY_NOTICES.txt。
+
+运行时还随附 Playwright v1.64.1 发布的 libwebp WASM，许可为 Apache-2.0 / libwebp BSD / Emscripten 通知，完整文件与二进制来源见 [vendor 记录](../src/vendor/webp/README.md)。该制品不依赖新增 npm 解码包，`check:licenses` 单独验证其固定哈希与许可保留。测试目录中的纯色 WebP 是本项目生成的 fixtures。

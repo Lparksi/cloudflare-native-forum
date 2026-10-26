@@ -21,8 +21,35 @@ export const profiles = sqliteTable('profiles', {
   username: text('username').notNull().unique(),
   displayName: text('display_name').notNull(),
   bio: text('bio').notNull().default(''),
+  avatarId: text('avatar_id'),
+  revision: integer('revision').notNull().default(1),
   createdAt: integer('created_at').notNull(),
 });
+export const uploads = sqliteTable(
+  'uploads',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => profiles.id),
+    key: text('object_key').notNull().unique(),
+    kind: text('kind', { enum: ['avatar', 'image'] }).notNull(),
+    state: text('state', { enum: ['pending', 'ready', 'deleted'] })
+      .notNull()
+      .default('pending'),
+    bytes: integer('bytes').notNull(),
+    width: integer('width').notNull(),
+    height: integer('height').notNull(),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [
+    index('uploads_owner_state').on(t.ownerId, t.state),
+    check(
+      'uploads_valid',
+      sql`${t.kind} IN ('avatar','image') AND ${t.state} IN ('pending','ready','deleted') AND ${t.bytes}>0 AND ${t.width}>0 AND ${t.height}>0`,
+    ),
+  ],
+);
 export const nodes = sqliteTable(
   'nodes',
   {
@@ -64,6 +91,12 @@ export const topics = sqliteTable(
   },
   (t) => [
     index('topics_status_created').on(t.status, t.createdAt, t.id),
+    index('topics_author_status_created').on(
+      t.authorId,
+      t.status,
+      t.createdAt,
+      t.id,
+    ),
     index('topics_node_status_created').on(
       t.nodeId,
       t.status,

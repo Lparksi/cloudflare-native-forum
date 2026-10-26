@@ -115,3 +115,20 @@ export const nodeInput = z
     reason: moderationReason,
   })
   .strict();
+export const profileInput = z
+  .object({
+    displayName: z
+      .string()
+      .trim()
+      .min(1)
+      .max(80)
+      .refine((s) => !s.includes('\0')),
+    bio: z
+      .string()
+      .trim()
+      .max(500)
+      .refine((s) => !s.includes('\0')),
+    avatarId: z.uuid().nullable(),
+    revision: z.number().int().positive(),
+  })
+  .strict();

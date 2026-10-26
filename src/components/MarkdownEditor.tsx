@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ImageUpload from './ImageUpload';
 export default function MarkdownEditor({
   label = '正文',
   defaultValue = '',
@@ -60,6 +61,13 @@ export default function MarkdownEditor({
           {busy ? '生成预览…' : html === null ? '预览 Markdown' : '收起预览'}
         </button>
       </div>
+      <ImageUpload
+        kind="image"
+        onUploaded={(image) => {
+          setValue((current) => `${current}\n\n![图片](${image.url})\n`);
+          setHtml(null);
+        }}
+      />
       {error && (
         <p role="alert" className="error">
           {error}

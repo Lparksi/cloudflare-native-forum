@@ -58,3 +58,15 @@ GitHub Actions 已编写但尚未在远端运行；D1 云端行为、Test/Produc
 - 独立 Astra High 只读审查未发现阻塞项，核对认证路径归一、封禁并发、SQL 权限与审计原子性、首次管理员和挑战生命周期；安装版本路由器的 9 种路径验证没有出现挑战绕过。
 - 正常本机迁移前已导出备份，0003/0004 增量迁移成功；未修改已应用迁移。未在正常开发库指定管理员，需操作者为自己已验证的账户执行本地 bootstrap。
 - 本轮没有真实 Turnstile 密钥或站点，没有验证真实挑战签发/重放、真实邮件或远端 D1；Test/Production 保持禁用，没有部署、推送或创建收费资源。不能据此声称生产就绪。
+
+## Phase 5 用户资料与 R2 图片验证（2026-10-26）
+
+- `pnpm test`：**69 项通过**（10 个文件）。新增真实 WebP 有损/无损解码、尺寸/动画/截断/伪造与尾随数据拒绝、VP8X/ICCP/EXIF/XMP 清理、实际流大小与伪造 Content-Length、真实 Miniflare R2 读写及安全响应头、头像归属/kind/ready/revision、越权删除、封禁竞态、R2 put/清理/delete 故障补偿与删除重试、用户/IP 限流、并发额度、公开资料隐私与作者列表可见性。
+- `pnpm test:e2e`：**16 项通过**。Chromium 桌面与 iPhone 13 viewport 均完成 PNG 前端压缩 → 静态 WebP、256×256 头像裁剪、1600×800 正文缩放、透明通道上传、头像/资料保存与刷新、主页作者链接、简介脚本转义、图片插入 Markdown/预览/SSR、本人图片删除和 404。保留前四阶段完整回归，移动端无水平溢出。
+- 独立审查定位头像上传与资料保存回调捕获旧对象，可能覆盖新输入或回退 revision；改用字段级函数式更新，E2E 显式控制 upload-first/save-first 两种响应顺序并确认最终保存和刷新结果。
+- 旧候选 `@jsquash/webp@1.5.0` 的底层函数实测返回 libwebp 1.1.0，已移除。最终使用 Microsoft Playwright v1.64.1 官方固定 libwebp WASM 制品，官方源码仓库与已安装发布包逐字节一致；SHA、源码 commit、生成 JS 的三项平台适配和完整许可记录在 vendor README。没有新增 npm 运行时依赖。
+- 另一轮独立核验检查 C ABI、内存增长后视图、分配/释放、初始化与共享实例；未发现阻塞项。独立 Node WASM 测试在堆增长后连续解码/释放 100 次透明图片成功；本项目实际浏览器流程同时验证本机 workerd 运行。不能将其等同于远端 Workers CPU/并发预算验收。
+- `pnpm typecheck`：0 errors/warnings/hints；Lint、格式、build、peer 约束、567 条依赖许可、vendor 二进制哈希/许可、构建信息及基础 Secret 检查通过。
+- 0005/0006 为增量表/列/索引，没有重建旧表或改变既有手工触发器。迁移前导出正常本机数据库，恢复到独立 SQLite 后外键检查通过，保留 20 条主题和 10 个触发器；随后本机 D1 应用迁移成功。迁移回归还确认旧 profile 默认头像/版本、旧主题/作者和 Session 保留。
+- Wrangler 导出 SQL 直接导入空本地 D1 因表顺序导致 `no such table: main.user`，没有用这次失败替代恢复成功声明；独立 SQLite 恢复通过，D1 目标环境恢复仍待演练。没有重置日常开发数据库。
+- E2E 使用独立 D1/R2 状态，不污染正常用户库。尚未创建真实 R2 Bucket、验证云端 R2、真实邮件或 Turnstile；没有部署或推送。图片为独立公开链接，失败清理可留下待人工处理记录；浏览器不支持 WebP 编码时会提示，原生 Safari/iOS 尚未验收。详见 [存储与公开性边界](profiles-uploads.md)。

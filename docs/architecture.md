@@ -1,10 +1,10 @@
 # 架构与边界
 
-Phase 4 更新：认证、讨论与本地管理安全闭环已落地。详见 [认证说明](auth.md) 与 [讨论设计](discussions.md) 及 [管理安全](moderation.md)。
+Phase 5 更新：认证、讨论、管理、用户资料和 R2 图片本地闭环已落地。详见 [认证说明](auth.md) 与 [讨论设计](discussions.md) 及 [管理安全](moderation.md)。
 
 浏览器 → Cloudflare Workers 单入口 `src/worker.ts`。`/api/*` 交给 Hono，其余交给 Astro Cloudflare handler。SSR 与 API 复用 `src/db/repository.ts` / `discussions.ts`，通过 Drizzle D1 driver 使用 DB 绑定。React Islands 用于外观、账户表单、Markdown 编辑预览和讨论交互；Tailwind v4 使用 Vite 插件，视觉 token 与响应式规则位于 global.css。
 
-采用扁平工程，避免尚无共享消费者时引入 monorepo。没有 VPS、Redis、Docker 后端或外部数据库。未配置自动创建的 Images/KV：图片用 compile 模式，Astro session 关闭。当前无 R2 上传与资源。AUTH_EMAIL 已声明为本地绑定和未来远端投递适配，尚未配置真实发送。
+采用扁平工程，避免尚无共享消费者时引入 monorepo。没有 VPS、Redis、Docker 后端或外部数据库。未配置自动创建的 Images/KV：图片用 compile 模式，Astro session 关闭。R2 上传已接入本机模拟器，未创建云端资源，详见 [用户资料与图片](profiles-uploads.md)。AUTH_EMAIL 已声明为本地绑定和未来远端投递适配，尚未配置真实发送。
 
 ## 版本与兼容性（2026-10-26）
 
@@ -36,6 +36,6 @@ Better Auth 1.7.13 通过固定版本 CLI 生成认证 Schema，使用 Drizzle a
 
 1. 完成真实邮件投递验证和异常账户恢复流程；认证本地闭环已完成。
 2. 配置真实 Turnstile 站点与 Secret，验收真实 token、域名、action 和重放拒绝。
-3. 用户主页/资料、@用户解析与通知。
+3. @用户解析与通知。
 4. 审核运营流程，再推进搜索。
-5. R2 类型/实际内容/大小校验，SEO/RSS/Sitemap 与经过隔离验证的公共缓存；申请 Test 部署权限后验证。
+5. R2 远端恢复与媒体审核，SEO/RSS/Sitemap 与经过隔离验证的公共缓存；申请 Test 部署权限后验证。

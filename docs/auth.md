@@ -64,7 +64,7 @@ Cloudflare Vite 在 build 时会为本地 preview 将 `.dev.vars` 复制到 **di
 - 可信原点固定为配置值，保留 Better Auth 的 CSRF/回调 URL 校验；显式 `disableOriginCheck:false`、`disableCSRFCheck:false`，避免库在测试环境默认放宽 Origin 检查。外层对写请求要求精确 Origin，并限制请求体 16 KiB。
 - 数据库限流跨 Worker 实例持久化：每 IP 每 60 秒，注册 3 次、登录 5 次、重发验证与申请重置各 3 次，其他路径默认每 IP、每路径 60 次。IP 来源仅 cf-connecting-ip；正式请求依赖 Cloudflare 覆盖该头，不能把直连/不可信反代作为生产入口。本机 E2E 独立 IP 仅用于测试。
 - 注册、重发、重置请求使用库的邮箱枚举保护与统一 UI 提示；不存在用户和错误密码返回相同登录提示。认证日志不记录邮箱、token 或底层 SQL。
-- 业务发帖不接受客户端 authorId，且必须再次从服务端 Session 取真实作者。当前未实现资料编辑，禁用 Better Auth 默认 /update-user，防止绕过显示名称契约。
+- 业务发帖不接受客户端 authorId，且必须再次从服务端 Session 取真实作者。公开资料通过独立 API 编辑，继续禁用 Better Auth 默认 /update-user，防止绕过显示名称与头像契约。
 - D1 不支持 Drizzle 交互式事务，显式 `transaction:false`，未伪称全流程可回滚。库对重置先原子消费 token，再撤销 Session，再保存新密码；若保存失败，旧密码保留、旧 Session 已撤销、原 token 已消费，需重新申请链接。故障注入测试覆盖了该行为。
 - 注册 user/account 的多步创建同样不具备交互式事务回滚；上线前需完善异常账户诊断与恢复流程，不通过全库重置处理。当前未启用公开环境，不能声称生产就绪。
 - Wrangler 关闭默认 invocation_logs 和 tracing，保留脱敏 console 事件，避免平台日志自动采集含认证令牌的路径或查询。不能仅脱敏 query，因为重置令牌在路径中。未来增加 CDN/代理/Logpush 等日志时须继续核对令牌排除规则。

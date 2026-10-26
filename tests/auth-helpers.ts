@@ -14,9 +14,12 @@ export async function setupDatabase() {
     script: 'export default { fetch() { return new Response("ok") } }',
     compatibilityDate: '2026-07-30',
     d1Databases: ['DB'],
+    r2Buckets: ['UPLOADS'],
+    r2Persist: false,
   });
   const env: Env = {
     DB: await mf.getD1Database('DB'),
+    UPLOADS: (await mf.getBindings<Pick<Env, 'UPLOADS'>>()).UPLOADS,
     APP_ENV: 'local',
     TURNSTILE_MODE: 'local',
     TURNSTILE_SITE_KEY: '',

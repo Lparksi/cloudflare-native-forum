@@ -1,0 +1,1 @@
+CREATE INDEX `topics_author_status_created` ON `topics` (`author_id`,`status`,`created_at`,`id`);

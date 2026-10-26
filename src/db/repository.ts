@@ -1,7 +1,7 @@
 import { and, desc, eq, lt, or, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
 import { activeProfile } from '../security/access';
-import { nodes, profiles, topics } from './schema';
+import { nodes, profiles, topics, uploads } from './schema';
 import type { TopicInput, TopicCursor } from '../lib/contracts';
 
 export function repository(binding: D1Database) {
@@ -14,18 +14,153 @@ export function repository(binding: D1Database) {
     slug: nodes.slug,
     username: profiles.username,
     author: profiles.displayName,
+    avatarId: profiles.avatarId,
     replyCount: topics.replyCount,
     voteCount: topics.voteCount,
   };
   const visible = and(eq(topics.status, 'published'), eq(nodes.hidden, false));
   return {
+    async publicProfile(username: string) {
+      return (
+        await db
+          .select({
+            id: profiles.id,
+            username: profiles.username,
+            displayName: profiles.displayName,
+            bio: profiles.bio,
+            avatarId: profiles.avatarId,
+            createdAt: profiles.createdAt,
+          })
+          .from(profiles)
+          .where(eq(profiles.username, username))
+          .limit(1)
+      )[0];
+    },
+    async editProfile(
+      userId: string,
+      value: {
+        displayName: string;
+        bio: string;
+        avatarId: string | null;
+        revision: number;
+      },
+    ) {
+      return (
+        (
+          await db
+            .update(profiles)
+            .set({
+              displayName: value.displayName,
+              bio: value.bio,
+              avatarId: value.avatarId,
+              revision: sql`${profiles.revision}+1`,
+            })
+            .where(
+              and(
+                eq(profiles.userId, userId),
+                eq(profiles.revision, value.revision),
+                activeProfile(`member-${userId}`),
+                value.avatarId
+                  ? sql`EXISTS(SELECT 1 FROM uploads WHERE id=${value.avatarId} AND owner_id=${profiles.id} AND kind='avatar' AND state='ready')`
+                  : undefined,
+              ),
+            )
+            .returning({ id: profiles.id })
+        ).length === 1
+      );
+    },
+    async reserveUpload(
+      userId: string,
+      upload: {
+        id: string;
+        key: string;
+        kind: 'avatar' | 'image';
+        bytes: number;
+        width: number;
+        height: number;
+      },
+    ) {
+      return (
+        (
+          await db.run(sql`INSERT INTO uploads(id,owner_id,object_key,kind,bytes,width,height,created_at)
+        SELECT ${upload.id},profiles.id,${upload.key},${upload.kind},${upload.bytes},${upload.width},${upload.height},${Date.now()} FROM profiles
+        WHERE profiles.user_id=${userId} AND ${activeProfile(`member-${userId}`)}
+        AND (SELECT COALESCE(SUM(bytes),0) FROM uploads WHERE owner_id=profiles.id AND state!='deleted')+${upload.bytes}<=20971520 RETURNING id`)
+        ).results.length === 1
+      );
+    },
+    async readyUpload(id: string, userId: string) {
+      return (
+        (
+          await db
+            .update(uploads)
+            .set({ state: 'ready' })
+            .where(
+              and(
+                eq(uploads.id, id),
+                eq(uploads.ownerId, `member-${userId}`),
+                eq(uploads.state, 'pending'),
+                activeProfile(`member-${userId}`),
+              ),
+            )
+            .returning({ id: uploads.id })
+        ).length === 1
+      );
+    },
+    discardUpload(id: string) {
+      return db
+        .delete(uploads)
+        .where(and(eq(uploads.id, id), eq(uploads.state, 'pending')));
+    },
+    async media(id: string) {
+      return (
+        await db
+          .select()
+          .from(uploads)
+          .where(and(eq(uploads.id, id), eq(uploads.state, 'ready')))
+          .limit(1)
+      )[0];
+    },
+    ownUploads(userId: string) {
+      return db
+        .select({
+          id: uploads.id,
+          kind: uploads.kind,
+          bytes: uploads.bytes,
+          createdAt: uploads.createdAt,
+        })
+        .from(uploads)
+        .where(
+          and(
+            eq(uploads.ownerId, `member-${userId}`),
+            eq(uploads.state, 'ready'),
+          ),
+        )
+        .orderBy(desc(uploads.createdAt))
+        .limit(50);
+    },
+    async deleteUpload(id: string, userId: string) {
+      const rows = await binding.batch<{ object_key: string }>([
+        binding
+          .prepare(
+            "UPDATE uploads SET state='deleted' WHERE id=? AND owner_id=? AND state IN ('ready','deleted') AND EXISTS(SELECT 1 FROM account_access WHERE user_id=? AND banned=0) RETURNING object_key",
+          )
+          .bind(id, `member-${userId}`, userId),
+        binding
+          .prepare(
+            "UPDATE profiles SET avatar_id=NULL,revision=revision+1 WHERE user_id=? AND avatar_id=? AND EXISTS(SELECT 1 FROM uploads WHERE id=? AND owner_id=profiles.id AND state='deleted')",
+          )
+          .bind(userId, id, id),
+      ]);
+      return rows[0].results[0]?.object_key;
+    },
     nodes: () =>
       db
         .select()
         .from(nodes)
         .where(eq(nodes.hidden, false))
         .orderBy(nodes.sortOrder, nodes.id),
-    async list(cursor?: TopicCursor, slug?: string) {
+    async list(cursor?: TopicCursor, slug?: string, authorId?: string) {
       const rows = await db
         .select(selection)
         .from(topics)
@@ -34,6 +169,7 @@ export function repository(binding: D1Database) {
         .where(
           and(
             visible,
+            authorId ? eq(topics.authorId, authorId) : undefined,
             slug ? eq(nodes.slug, slug) : undefined,
             cursor
               ? or(

@@ -1,6 +1,27 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+// Vendored runtime binary is outside the npm dependency tree; keep its provenance checked.
+assert.equal(
+  createHash('sha256')
+    .update(readFileSync('src/vendor/webp/codec.wasm'))
+    .digest('hex'),
+  '164cd9583a3e4d081f767d3b41ff0a730443dc7535fcc5caff83561463384b79',
+);
+assert.ok(
+  readFileSync('src/vendor/webp/LICENSE.playwright', 'utf8').includes(
+    'Apache License',
+  ),
+);
+const codecNotice = readFileSync(
+  'src/vendor/webp/LICENSE.libwebp-emscripten',
+  'utf8',
+);
+assert.ok(
+  codecNotice.includes('Redistribution and use in source and binary forms'),
+);
+assert.ok(codecNotice.includes('Emscripten'));
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 assert.equal(pkg.license, 'MIT');
 const license = readFileSync('LICENSE', 'utf8');

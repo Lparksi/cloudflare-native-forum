@@ -34,6 +34,9 @@ import {
   nodeInput,
 } from './contracts';
 import { renderMarkdown } from './markdown';
+import { InvalidImage, MAX_UPLOAD_BYTES, validateImage } from './images';
+import { consumeLimit } from '../security/limits';
+import { profileInput } from './contracts';
 
 type ApiEnv = {
   Bindings: Env;
@@ -83,8 +86,21 @@ api.use('*', async (c, next) => {
     return c.json(error('WRITE_DISABLED', '本阶段仅开放本地开发写入'), 403);
   if (c.req.header('origin') !== new URL(c.req.url).origin)
     return c.json(error('INVALID_ORIGIN', '请求来源无效'), 403);
-  if (!c.req.header('content-type')?.startsWith('application/json'))
-    return c.json(error('INVALID_CONTENT_TYPE', '请使用 JSON'), 415);
+  const upload =
+    c.req.method === 'POST' &&
+    /^\/api\/v1\/uploads\/(avatar|image)$/.test(c.req.path);
+  if (
+    upload
+      ? c.req.header('content-type') !== 'image/webp'
+      : !c.req.header('content-type')?.startsWith('application/json')
+  )
+    return c.json(
+      error(
+        'INVALID_CONTENT_TYPE',
+        upload ? '请使用 WebP 二进制图片' : '请使用 JSON',
+      ),
+      415,
+    );
   if (c.req.path === '/api/v1/security/challenge') return next();
   const session = await getSession(c.env, c.req.raw);
   if (!session?.user.emailVerified)
@@ -92,13 +108,146 @@ api.use('*', async (c, next) => {
   c.set('actor', session.user);
   await next();
 });
-api.use(
-  '*',
-  bodyLimit({
-    maxSize: 100000,
-    onError: (c) => c.json(error('BODY_TOO_LARGE', '内容过大'), 413),
-  }),
+api.use('*', (c, next) =>
+  c.req.method === 'POST' &&
+  /^\/api\/v1\/uploads\/(avatar|image)$/.test(c.req.path)
+    ? next()
+    : bodyLimit({
+        maxSize: 100000,
+        onError: (c) => c.json(error('BODY_TOO_LARGE', '内容过大'), 413),
+      })(c, next),
 );
+api.get('/me/profile', async (c) => {
+  const session = await getSession(c.env, c.req.raw);
+  if (!session?.user.emailVerified)
+    return c.json(error('UNAUTHORIZED', '请先验证邮箱并登录'), 401);
+  return c.json({
+    data: await repository(c.env.DB).profileForUser(session.user),
+  });
+});
+api.patch('/me/profile', async (c) => {
+  const value = await input(c, profileInput),
+    repo = repository(c.env.DB);
+  await repo.profileForUser(c.get('actor'));
+  const ok = await repo.editProfile(c.get('actor').id, value);
+  return ok
+    ? c.json({ data: { status: 'ok' } })
+    : c.json(
+        error('CONFLICT', '资料版本已变化，或头像不属于当前账户，请刷新'),
+        409,
+      );
+});
+api.get('/me/uploads', async (c) => {
+  const session = await getSession(c.env, c.req.raw);
+  if (!session?.user.emailVerified)
+    return c.json(error('UNAUTHORIZED', '请先登录'), 401);
+  return c.json({
+    data: await repository(c.env.DB).ownUploads(session.user.id),
+  });
+});
+api.post('/uploads/:kind', async (c) => {
+  const kind = c.req.param('kind');
+  if (kind !== 'avatar' && kind !== 'image')
+    return c.json(error('NOT_FOUND', '不存在'), 404);
+  const actor = c.get('actor'),
+    ip = clientIp(c.req.raw);
+  if (!ip) return c.json(error('INVALID_CLIENT', '无法确认来源'), 403);
+  await consumeLimit(c.env.DB, JSON.stringify(['upload', 'ip', ip]), 30);
+  await consumeLimit(
+    c.env.DB,
+    JSON.stringify(['upload', 'user', actor.id]),
+    10,
+  );
+  const reader = c.req.raw.body?.getReader();
+  if (!reader) throw new InvalidImage();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.length;
+    if (size > MAX_UPLOAD_BYTES) {
+      await reader.cancel();
+      return c.json(error('BODY_TOO_LARGE', '图片最大 2 MiB'), 413);
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.length;
+  }
+  const image = await validateImage(bytes.buffer, kind);
+  const repo = repository(c.env.DB);
+  await repo.profileForUser(actor);
+  const id = crypto.randomUUID(),
+    key = `images/${id}.webp`;
+  if (
+    !(await repo.reserveUpload(actor.id, {
+      id,
+      key,
+      kind,
+      bytes: image.data.length,
+      width: image.width,
+      height: image.height,
+    }))
+  )
+    return c.json(
+      error('UPLOAD_QUOTA', '已达到 20 MiB 上传额度，或账户状态已变化'),
+      409,
+    );
+  try {
+    await c.env.UPLOADS.put(key, image.data, {
+      httpMetadata: { contentType: 'image/webp' },
+    });
+    if (!(await repo.readyUpload(id, actor.id)))
+      throw new Error('Upload no longer allowed');
+  } catch (err) {
+    // R2 and D1 have no shared transaction. Keep a non-public pending row if cleanup fails.
+    await c.env.UPLOADS.delete(key);
+    await repo.discardUpload(id);
+    throw err;
+  }
+  return c.json(
+    {
+      data: {
+        id,
+        url: `/api/v1/media/${id}`,
+        width: image.width,
+        height: image.height,
+        bytes: image.data.length,
+      },
+    },
+    201,
+  );
+});
+api.delete('/uploads/:id', async (c) => {
+  const key = await repository(c.env.DB).deleteUpload(
+    c.req.param('id'),
+    c.get('actor').id,
+  );
+  if (!key)
+    return c.json(error('NOT_FOUND', '文件不存在或不属于当前账户'), 404);
+  await c.env.UPLOADS.delete(key);
+  return c.json({ data: { status: 'deleted' } });
+});
+api.get('/media/:id', async (c) => {
+  const row = await repository(c.env.DB).media(c.req.param('id'));
+  if (!row) return c.json(error('NOT_FOUND', '图片不存在'), 404);
+  const object = await c.env.UPLOADS.get(row.key);
+  if (!object) return c.json(error('NOT_FOUND', '图片不存在'), 404);
+  return new Response(object.body, {
+    headers: {
+      'Content-Type': 'image/webp',
+      'Content-Length': String(object.size),
+      'Content-Disposition': 'inline; filename="image.webp"',
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "default-src 'none'; sandbox",
+      'Cache-Control': 'private, no-store',
+    },
+  });
+});
 api.post('/security/challenge', async (c) => {
   const { action } = await input(
     c,
@@ -447,6 +596,8 @@ api.patch('/admin/nodes/:id', async (c) => {
 });
 api.notFound((c) => c.json(error('NOT_FOUND', 'API 不存在'), 404));
 api.onError((err, c) => {
+  if (err instanceof InvalidImage)
+    return c.json(error('INVALID_IMAGE', err.message), 400);
   if (err instanceof RateLimited) {
     c.header('Retry-After', String(err.retryAfter));
     return c.json(error('RATE_LIMITED', err.message), 429);

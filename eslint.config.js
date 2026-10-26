@@ -4,6 +4,7 @@ import astro from 'eslint-plugin-astro';
 export default tseslint.config(
   {
     ignores: [
+      'src/vendor/webp/codec.js',
       '.cache/**',
       'dist/**',
       '.astro/**',

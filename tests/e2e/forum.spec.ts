@@ -28,7 +28,7 @@ test('create, persist, render safely and browse a topic', async ({ page }) => {
   const title = `端到端讨论 ${crypto.randomUUID().slice(0, 8)}`;
   await page.getByLabel('主题标题').fill(title);
   await page
-    .getByLabel('正文')
+    .getByLabel('正文', { exact: true })
     .fill('**一条真实保存的讨论**\n\n<script>window.xss = true</script>');
   await page.getByRole('button', { name: '发布主题' }).click();
   await expect(page).toHaveURL(/\/t\/[a-f0-9-]+/);

@@ -8,7 +8,7 @@
 | Test       | cloudflare-native-forum-test       | 独立占位 ID，未创建        | test       | 403                                   |
 | Production | cloudflare-native-forum-production | 独立占位 ID，未创建        | production | 403                                   |
 
-`workers_dev=false`、`preview_urls=false`，未绑定域名；占位 ID 不应被当成真实资源。请勿把根 Local 配置部署到 Cloudflare。不同环境绝不共用 D1、R2、Secrets。当前无 R2/KV 或远端资源访问；Turnstile 仅本地模拟与 Siteverify 适配，未创建真实站点。认证需要本地随机 Secret 和开发收件箱；AUTH_EMAIL 绑定已声明但尚未配置真实投递，Test/Production 的 AUTH_MAIL_MODE 默认 disabled。详见 [认证配置](auth.md)。
+`workers_dev=false`、`preview_urls=false`，未绑定域名；占位 ID 不应被当成真实资源。请勿把根 Local 配置部署到 Cloudflare。不同环境绝不共用 D1、R2、Secrets。R2 已本地集成，当前无 KV 或远端资源访问；Turnstile 仅本地模拟与 Siteverify 适配，未创建真实站点。认证需要本地随机 Secret 和开发收件箱；AUTH_EMAIL 绑定已声明但尚未配置真实投递，Test/Production 的 AUTH_MAIL_MODE 默认 disabled。详见 [认证配置](auth.md)。
 
 ## 数据库迁移
 
@@ -42,7 +42,7 @@ pnpm db:seed
 - 未来远端迁移前，对目标环境显式执行 D1 export，保存到受访问控制的存储。记录导出时间、数据库 ID、迁移版本与当前 Worker SHA；不要记录密钥。
 - 验证备份可在**新建的隔离恢复数据库**导入，检查 schema、行数、约束与代表性主题读取，再制定切换方案。不要删除原库或用重建代替正式数据迁移。
 - 可评估 D1 Time Travel 的当时可用恢复窗口与权限，不能用未验证的恢复承诺替代 SQL 备份演练。
-- 后续 R2 上传落地后单独制定对象备份、生命周期与数据库附件引用的一致性策略。
+- R2 本地上传已落地；启用远端前需制定对象备份、生命周期及与 D1 记录一致的恢复策略，见 [图片存储边界](profiles-uploads.md)。
 
 ## CI 和本机验证的区别
 

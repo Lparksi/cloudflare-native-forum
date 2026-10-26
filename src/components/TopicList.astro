@@ -14,7 +14,17 @@ const { items, nextCursor } = Astro.props;
   {items.map((topic) => (
     <article class="topic-row">
       <div class="avatar" aria-hidden="true">
-        {topic.author.slice(0, 1)}
+        {topic.avatarId ? (
+          <img
+            src={`/api/v1/media/${topic.avatarId}`}
+            alt=""
+            loading="lazy"
+            width="40"
+            height="40"
+          />
+        ) : (
+          topic.author.slice(0, 1)
+        )}
       </div>
       <div class="topic-content">
         <a class="topic-title" href={`/t/${topic.id}`}>
@@ -24,7 +34,7 @@ const { items, nextCursor } = Astro.props;
           <a class="node-chip" href={`/go/${topic.slug}`}>
             {topic.node}
           </a>
-          <span>{topic.author}</span>
+          <a href={`/member/${topic.username}`}>{topic.author}</a>
           <span>
             {topic.replyCount} 回复 · {topic.voteCount} 赞
           </span>

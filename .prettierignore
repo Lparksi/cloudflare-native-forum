@@ -10,3 +10,6 @@ test-results
 
 .cache
 THIRD_PARTY_NOTICES.txt
+
+src/vendor/webp/codec.js
+src/vendor/webp/LICENSE.*

@@ -24,6 +24,13 @@
     "BETTER_AUTH_URL": "http://127.0.0.1:4321",
     "AUTH_MAIL_FROM": "noreply@example.invalid",
   },
+  "r2_buckets": [
+    {
+      "binding": "UPLOADS",
+      "bucket_name": "forum-local-uploads",
+      "remote": false,
+    },
+  ],
   "d1_databases": [
     {
       "binding": "DB",
@@ -47,6 +54,13 @@
         "BETTER_AUTH_URL": "https://test.example.invalid",
         "AUTH_MAIL_FROM": "noreply@example.invalid",
       },
+      "r2_buckets": [
+        {
+          "binding": "UPLOADS",
+          "bucket_name": "forum-test-uploads-unprovisioned",
+          "remote": false,
+        },
+      ],
       "d1_databases": [
         {
           "binding": "DB",
@@ -70,6 +84,13 @@
         "BETTER_AUTH_URL": "https://forum.example.invalid",
         "AUTH_MAIL_FROM": "noreply@example.invalid",
       },
+      "r2_buckets": [
+        {
+          "binding": "UPLOADS",
+          "bucket_name": "forum-production-uploads-unprovisioned",
+          "remote": false,
+        },
+      ],
       "d1_databases": [
         {
           "binding": "DB",

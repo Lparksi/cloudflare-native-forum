@@ -57,7 +57,7 @@ const quote = quoted
           </a>
           <h1 class="detail-title">{topic.title}</h1>
           <p class="topic-meta">
-            {topic.author} ·{' '}
+            <a href={`/member/${topic.username}`}>{topic.author}</a> ·{' '}
             <time datetime={new Date(topic.createdAt).toISOString()}>
               {new Date(topic.createdAt)
                 .toISOString()
@@ -116,7 +116,9 @@ const quote = quoted
           {rows.map((reply) => (
             <article class="reply-row" id={`reply-${reply.id}`}>
               <div class="reply-meta">
-                <strong>{reply.author}</strong>
+                <a href={`/member/${reply.username}`}>
+                  <strong>{reply.author}</strong>
+                </a>
                 <span>#{reply.floor}</span>
                 <time datetime={new Date(reply.createdAt).toISOString()}>
                   {new Date(reply.createdAt)

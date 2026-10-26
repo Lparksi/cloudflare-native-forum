@@ -113,6 +113,7 @@ export function discussions(binding: D1Database) {
           authorId: replies.authorId,
           author: profiles.displayName,
           username: profiles.username,
+          avatarId: profiles.avatarId,
           createdAt: replies.createdAt,
           updatedAt: replies.updatedAt,
         })
@@ -287,6 +288,7 @@ export function discussions(binding: D1Database) {
           slug: nodes.slug,
           author: profiles.displayName,
           username: profiles.username,
+          avatarId: profiles.avatarId,
           replyCount: topics.replyCount,
           voteCount: topics.voteCount,
         })

@@ -1,0 +1,61 @@
+---
+import { env } from 'cloudflare:workers';
+import Layout from '../../layouts/Layout.astro';
+import TopicList from '../../components/TopicList.astro';
+import { repository } from '../../db/repository';
+import { parseCursor } from '../../lib/contracts';
+const repo = repository(env.DB),
+  profile = await repo.publicProfile(Astro.params.username!);
+let cursor;
+try {
+  cursor = parseCursor(Astro.url.searchParams.get('cursor'));
+} catch {
+  return new Response('分页参数无效', { status: 400 });
+}
+if (!profile) Astro.response.status = 404;
+const page = profile ? await repo.list(cursor, undefined, profile.id) : null;
+---
+
+<Layout title={profile ? `${profile.displayName} 的主页` : '用户不存在'}>
+  <div class="narrow">
+    <section class="panel padded">
+      {profile ? (
+        <>
+          <div class="profile-heading">
+            {profile.avatarId && (
+              <img
+                class="profile-avatar"
+                src={`/api/v1/media/${profile.avatarId}`}
+                alt={`${profile.displayName} 的头像`}
+              />
+            )}
+            <div>
+              <div class="eyebrow">MEMBER</div>
+              <h1>{profile.displayName}</h1>
+            </div>
+          </div>
+          <p class="muted">
+            @{profile.username} · 加入于{' '}
+            <time datetime={new Date(profile.createdAt).toISOString()}>
+              {new Date(profile.createdAt).toISOString().slice(0, 10)}
+            </time>
+          </p>
+          <p class="profile-bio">{profile.bio || '这位成员还没有填写简介。'}</p>
+        </>
+      ) : (
+        <>
+          <h1>用户不存在</h1>
+          <p>没有找到该用户的公开资料。</p>
+        </>
+      )}
+    </section>
+    {page && (
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>发布的讨论</h2>
+        </div>
+        <TopicList items={page.items} nextCursor={page.nextCursor} />
+      </section>
+    )}
+  </div>
+</Layout>

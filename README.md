@@ -2,7 +2,7 @@
 
 一个 Workers 原生的技术论坛工程，以简单、可靠、低成本为目标。MIT 开源，允许商业使用。
 
-**当前已完成 Phase 4 本地管理与安全功能，尚不能公开运营。** 支持 Markdown 与安全预览、线性回复、主题/回复编辑和软删除、点赞收藏，以及已实现的账户认证。本地邮件进入开发收件箱；尚未配置真实投递。内容真实存储于 D1。
+**当前已完成 Phase 5 用户资料与图片上传功能，尚不能公开运营。** 支持 Markdown 与安全预览、线性回复、主题/回复编辑和软删除、点赞收藏，以及已实现的账户认证。本地邮件进入开发收件箱；尚未配置真实投递。内容真实存储于 D1。
 
 ## 本地启动
 
@@ -31,7 +31,7 @@ pnpm preview --ignore-lock
 
 ## 技术架构
 
-Astro 7 + TypeScript strict、Cloudflare adapter、React Islands、Tailwind v4、Hono、Drizzle/D1、Zod、Better Auth。单 Worker、扁平目录，SSR 直接复用 Repository，浏览器通过 Hono API 写入。没有引入 Docker、VPS、Redis、KV 或 R2 服务。
+Astro 7 + TypeScript strict、Cloudflare adapter、React Islands、Tailwind v4、Hono、Drizzle/D1、Zod、Better Auth。单 Worker、扁平目录，SSR 直接复用 Repository，浏览器通过 Hono API 写入。没有引入 Docker、VPS、Redis 或 KV；R2 使用原生绑定，本轮仅在本机模拟器运行。
 
 - `src/worker.ts`：Workers 入口、Hono 分流、响应计时与安全头。
 - `src/lib/api.ts`：API、Zod 校验、同源与本机写入限制。
@@ -40,7 +40,7 @@ Astro 7 + TypeScript strict、Cloudflare adapter、React Islands、Tailwind v4�
 - `src/layouts/Layout.astro`：共享布局、Footer；`scripts/build-info.mjs`：构建元信息。
 - `tests/`：Miniflare D1 集成测试、构建/计时测试、桌面/移动端 E2E。
 
-[管理、权限与反滥用](docs/moderation.md) · [讨论功能与API](docs/discussions.md) · [认证配置与本地邮件流程](docs/auth.md) · [架构、兼容性与后续顺序](docs/architecture.md) · [环境隔离与部署流程](docs/operations.md) · [许可证与素材](docs/licenses.md)
+[用户资料与图片上传](docs/profiles-uploads.md) · [管理、权限与反滥用](docs/moderation.md) · [讨论功能与API](docs/discussions.md) · [认证配置与本地邮件流程](docs/auth.md) · [架构、兼容性与后续顺序](docs/architecture.md) · [环境隔离与部署流程](docs/operations.md) · [许可证与素材](docs/licenses.md)
 
 ## 当前功能
 
@@ -55,6 +55,7 @@ Astro 7 + TypeScript strict、Cloudflare adapter、React Islands、Tailwind v4�
 - 隐藏/删除主题和隐藏节点同时限制子回复、互动和收藏列表。
 - 管理员/版主后台、角色管理、封禁/解封、内容隐藏/恢复、节点管理、举报处理及原子审核日志。
 - Turnstile 服务端严格验证适配、本地一次性模拟挑战、D1 持久化发帖/回复与举报限流。
+- 用户主页、显示名称/简介/头像编辑；前端压缩转 WebP，服务端真实解码校验，原生 R2 存储、图片插入 Markdown 与本人文件管理。
 - Footer 版本、真实构建 SHA（无 Git 为 dev）、服务端测量值和 Server-Timing。
 - GitHub Actions 验证流程，**不包含部署或资源创建步骤**。
 
@@ -93,13 +94,13 @@ E2E 每轮在 `.cache/e2e/` 创建独立本机 D1，自动迁移和 seed，不�
 
 根配置仅供 Local：DB 绑定到本机 SQLite，APP_ENV=local。`env.test`、`env.production` 提供隔离配置，DB ID 为明确的占位 UUID，**没有创建远端数据库**。无部署脚本，无凭据要求。不要把本地配置直接发布。
 
-认证需要 BETTER_AUTH_SECRET。pnpm auth:setup 为本地生成被忽略的随机 secret；邮件默认只写本地收件箱。AUTH_EMAIL 绑定适配已实现，真实 Email Service 域名和投递尚未配置。Test/Production 的 AUTH_MAIL_MODE 默认 disabled；不得将本地邮箱模式上线。Turnstile 本机默认模拟，真实站点 key/secret 和投递域名均未配置。业务写入继续仅限本机；R2 留待后续。密钥不得写入 wrangler.jsonc 或 Git。详见 docs/auth.md。
+认证需要 BETTER_AUTH_SECRET。pnpm auth:setup 为本地生成被忽略的随机 secret；邮件默认只写本地收件箱。AUTH_EMAIL 绑定适配已实现，真实 Email Service 域名和投递尚未配置。Test/Production 的 AUTH_MAIL_MODE 默认 disabled；不得将本地邮箱模式上线。Turnstile 本机默认模拟，真实站点 key/secret 和投递域名均未配置。业务写入继续仅限本机；R2 本地集成已完成，云端 Bucket 尚未创建。密钥不得写入 wrangler.jsonc 或 Git。详见 docs/auth.md。
 
 ## 未完成与下一阶段
 
 1. 配置并验证真实邮件投递、真实 Turnstile 域名与密钥；完善异常账户诊断与恢复，演练备份恢复。
 2. 用户主页/资料、@ 用户解析与通知、审核运营流程。
-3. R2 上传与文件校验。
+3. 头像/媒体审核运营与故障回收；验收真实 R2 和存储恢复流程。
 4. 搜索、热门/活跃排序、RSS/Sitemap、SEO、英语语言包、缓存和实际 Test 部署验收。
 
 本轮只有基础 SEO title/description/lang、明暗模式和简体中文。Schema 未预建未实现业务的空表。Production 部署、付费资源、仓库可见性修改与 PR 合并均需项目所有者明确授权。

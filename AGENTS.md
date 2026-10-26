@@ -14,6 +14,7 @@
 - Markdown 预览与 SSR 只能使用 src/lib/markdown.ts 的统一安全管线；不接受 raw HTML，保留 sanitizer 协议与 clobber 保护，可信高亮在清理之后。权限、文件上传、用户数据和并发写入需要针对性测试。
 - 主题/回复编辑删除须在 SQL 条件检查作者、父级可见性与 revision；过期版本返回409。删除回复保留楼层占位，不向公开 API 返回原文。收藏只按当前 Session 查询。
 - 回复楼层/计数/最后回复时间和点赞计数由0002迁移内触发器原子维护；修改/重建表前必须审查这些手工触发器，不能只依赖Drizzle生成结果。详见 docs/discussions.md。
+- 上传先在浏览器压缩为 WebP，服务端仍须流式限制大小、检查尺寸/静态容器、移除元数据并真实解码；只通过 R2 绑定访问对象，不信任 MIME/文件名/Content-Length。媒体链接独立公开，见 docs/profiles-uploads.md；D1/R2 无跨服务事务，不得声称 pending 补偿一定成功。
 - 不启用公共页面缓存，直到有明确缓存键、用户隔离和 Footer 耗时处理。静态资源可以缓存。
 - `package.json` 是版本号唯一来源。构建 SHA 来自 GITHUB_SHA 或构建时 Git；无 Git 显示 dev。前后端使用同一次构建元信息。可选公开仓库地址才能生成 Commit 链接。
 - Footer 每个正常网页展示版本、SHA 和真实 Server 耗时。当前边界为 Worker 请求入口至有界 SSR 正文读取完成，不包含替换和网络传输。`Server-Timing` 与 Footer 同值。缓存命中不可复用旧耗时；未来缓存页面显示 Server —。
