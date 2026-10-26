@@ -33,6 +33,16 @@ async function recordRenderedFonts(
       const { fonts } = await session.send('CSS.getPlatformFontsForNode', {
         nodeId,
       });
+      const expectedFont = process.env.UI_EXPECT_CJK_FONT;
+      if (expectedFont) {
+        expect(fonts.some((font) => font.familyName === expectedFont)).toBe(
+          true,
+        );
+        // This existing node label is entirely Chinese: no hidden fallback.
+        if (selector === '.node-chip') {
+          expect(fonts.map((font) => font.familyName)).toEqual([expectedFont]);
+        }
+      }
       const fontFamily = await page
         .locator(selector)
         .first()
@@ -243,12 +253,14 @@ test('local UI review captures compact feeds and safe continuous discussions', a
   await page.getByRole('combobox', { name: '外观' }).selectOption('dark');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await recordRenderedFonts(page, ['h1', '.topic-body p']);
   await page.screenshot({
     path: testInfo.outputPath('topic-dark.png'),
     fullPage: true,
   });
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await recordRenderedFonts(page, ['.topic-title', '.node-chip']);
   await page.screenshot({
     path: testInfo.outputPath('home-dark.png'),
     fullPage: true,
