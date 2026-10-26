@@ -9,6 +9,44 @@ async function expectNoPageOverflow(page: Page) {
   ).toBe(true);
 }
 
+// Computed font-family alone cannot reveal which installed font rendered CJK.
+// Log only font metadata from these synthetic local fixtures, never page data.
+async function recordRenderedFonts(
+  page: Page,
+  selectors: string[],
+  stage = 'before-capture',
+) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+  const session = await page.context().newCDPSession(page);
+  try {
+    await session.send('DOM.enable');
+    await session.send('CSS.enable');
+    const { root } = await session.send('DOM.getDocument');
+    for (const selector of selectors) {
+      const { nodeId } = await session.send('DOM.querySelector', {
+        nodeId: root.nodeId,
+        selector,
+      });
+      expect(nodeId).not.toBe(0);
+      const { fonts } = await session.send('CSS.getPlatformFontsForNode', {
+        nodeId,
+      });
+      const fontFamily = await page
+        .locator(selector)
+        .first()
+        .evaluate((element) => getComputedStyle(element).fontFamily);
+      console.log(
+        'UI rendered fonts:',
+        JSON.stringify({ stage, selector, fontFamily, fonts }),
+      );
+    }
+  } finally {
+    await session.detach();
+  }
+}
+
 // These fixtures go through the real authenticated local API. Never use a
 // deployed endpoint, direct SQL, or mocked response for visual evidence.
 async function createLocalContent(
@@ -162,10 +200,12 @@ test('local UI review captures compact feeds and safe continuous discussions', a
     topics.at(-1)![1],
   );
   await expectNoPageOverflow(page);
+  await recordRenderedFonts(page, ['.topic-title', '.node-chip']);
   await page.screenshot({
     path: testInfo.outputPath('home-light.png'),
     fullPage: true,
   });
+  await recordRenderedFonts(page, ['.topic-title'], 'after-home-capture');
 
   await page
     .locator('.topic-row')
@@ -194,6 +234,7 @@ test('local UI review captures compact feeds and safe continuous discussions', a
       .locator('.topic-body table')
       .evaluate((element) => getComputedStyle(element).overflowX),
   ).toBe('auto');
+  await recordRenderedFonts(page, ['h1', '.topic-body p']);
   await page.screenshot({
     path: testInfo.outputPath('topic-light.png'),
     fullPage: true,

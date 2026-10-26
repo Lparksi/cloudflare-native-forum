@@ -35,6 +35,11 @@ jobs:
       - run: pnpm build
       - run: pnpm db:migrate && pnpm db:seed
       - run: pnpm exec playwright install --with-deps chromium
+      - name: Inspect screenshot runner fonts
+        run: |
+          fc-match 'sans-serif:lang=zh-cn'
+          fc-match 'Noto Sans SC:lang=zh-cn'
+          fc-list :lang=zh family | sort -u
       - run: pnpm test:e2e
       - name: Capture isolated UI review screenshots
         run: pnpm exec playwright test tests/e2e/ui.spec.ts --output=test-results/ui-review
