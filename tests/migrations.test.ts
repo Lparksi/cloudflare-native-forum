@@ -44,7 +44,7 @@ it('adds discussion and moderation migrations without losing existing content or
           .run();
       }
       const source = readFileSync(`db/migrations/${file}`, 'utf8');
-      if (/^000[23456]/.test(file))
+      if (/^000[234567]/.test(file))
         expect(source).not.toMatch(/DROP TABLE|foreign_keys\s*=\s*OFF/i);
       for (const statement of source.split('--> statement-breakpoint'))
         if (statement.trim()) await db.prepare(statement).run();
@@ -69,6 +69,12 @@ it('adds discussion and moderation migrations without losing existing content or
         .bind('old-author')
         .first(),
     ).toEqual({ avatar_id: null, revision: 1, bio: '' });
+    expect(
+      await db
+        .prepare('SELECT username,display_name FROM profiles WHERE user_id=?')
+        .bind('existing-user')
+        .first(),
+    ).toEqual({ username: 'u_existing-user', display_name: 'Existing' });
     expect(
       await db
         .prepare(

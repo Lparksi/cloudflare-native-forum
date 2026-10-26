@@ -1,0 +1,73 @@
+---
+import { env } from 'cloudflare:workers';
+import Layout from '../layouts/Layout.astro';
+import { getSession } from '../auth/server';
+import { discussions } from '../db/discussions';
+import { parseNotificationCursor } from '../lib/contracts';
+import ReadNotification from '../components/ReadNotification';
+const session = await getSession(env, Astro.request);
+if (!session?.user.emailVerified) return Astro.redirect('/login');
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+let cursor;
+try {
+  cursor = parseNotificationCursor(Astro.url.searchParams.get('cursor'));
+} catch {
+  return new Response('分页参数无效', { status: 400 });
+}
+const repo = discussions(env.DB),
+  page = await repo.notifications(session.user.id, cursor),
+  unread = await repo.unread(session.user.id);
+---
+
+<Layout title="站内通知">
+  <div class="narrow">
+    <section class="panel padded">
+      <h1>站内通知</h1>
+      <p class="muted">
+        {unread} 条未读 · 只展示当前仍可见的讨论，不包含邮件通知。
+      </p>
+      {page.items.map((item) => (
+        <article
+          class="notification-row"
+          data-testid={`notification-${item.id}`}
+        >
+          <p>
+            <a href={`/member/${item.username}`}>{item.actor}</a>{' '}
+            {item.kind === 'mention' ? '在讨论中提到了你' : '回复了你的主题'}
+            {item.readAt === null && <span class="unread-badge">未读</span>}
+          </p>
+          <a
+            href={
+              item.replyId
+                ? `/t/${item.topicId}?after=${Math.floor((item.floor! - 1) / 30) * 30}#reply-${item.replyId}`
+                : `/t/${item.topicId}`
+            }
+          >
+            {item.title}
+          </a>
+          <p class="muted">
+            <time datetime={new Date(item.createdAt).toISOString()}>
+              {new Date(item.createdAt)
+                .toISOString()
+                .slice(0, 16)
+                .replace('T', ' ')}{' '}
+              UTC
+            </time>
+          </p>
+          {item.readAt === null && (
+            <ReadNotification id={item.id} client:load />
+          )}
+        </article>
+      ))}
+      {!page.items.length && <p>暂无通知。</p>}
+      {page.nextCursor && (
+        <a
+          class="next-page"
+          href={`?cursor=${encodeURIComponent(page.nextCursor)}`}
+        >
+          更早的通知 ↓
+        </a>
+      )}
+    </section>
+  </div>
+</Layout>

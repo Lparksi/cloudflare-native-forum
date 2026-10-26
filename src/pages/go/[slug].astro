@@ -3,19 +3,22 @@ import { env } from 'cloudflare:workers';
 import Layout from '../../layouts/Layout.astro';
 import TopicList from '../../components/TopicList.astro';
 import { repository } from '../../db/repository';
-import { parseCursor } from '../../lib/contracts';
+import { parseFeed } from '../../lib/contracts';
 const repo = repository(env.DB);
 const node = (await repo.nodes()).find(
   (node) => node.slug === Astro.params.slug,
 );
 if (!node) Astro.response.status = 404;
-let cursor;
+import FeedControls from '../../components/FeedControls.astro';
+let feed;
 try {
-  cursor = parseCursor(Astro.url.searchParams.get('cursor'));
+  feed = parseFeed(Astro.url.searchParams);
 } catch {
-  return new Response('分页参数无效', { status: 400 });
+  return new Response('搜索、排序或分页参数无效', { status: 400 });
 }
-const page = node ? await repo.list(cursor, node.slug) : null;
+const page = node
+  ? await repo.list(feed.cursor, node.slug, undefined, feed.options)
+  : null;
 ---
 
 <Layout title={node?.name ?? '节点不存在'}>
@@ -34,6 +37,7 @@ const page = node ? await repo.list(cursor, node.slug) : null;
           ＋ 发起讨论
         </a>
       </div>
+      <FeedControls options={feed.options} />
       <TopicList {...page} />
     </section>
   )}

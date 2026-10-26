@@ -2,7 +2,7 @@
 
 一个 Workers 原生的技术论坛工程，以简单、可靠、低成本为目标。MIT 开源，允许商业使用。
 
-**当前已完成 Phase 5 用户资料与图片上传功能，尚不能公开运营。** 支持 Markdown 与安全预览、线性回复、主题/回复编辑和软删除、点赞收藏，以及已实现的账户认证。本地邮件进入开发收件箱；尚未配置真实投递。内容真实存储于 D1。
+**当前已完成 Phase 6 通知与讨论发现功能，尚不能公开运营。** 支持 Markdown 与安全预览、线性回复、主题/回复编辑和软删除、点赞收藏，以及已实现的账户认证。本地邮件进入开发收件箱；尚未配置真实投递。内容真实存储于 D1。
 
 ## 本地启动
 
@@ -40,7 +40,7 @@ Astro 7 + TypeScript strict、Cloudflare adapter、React Islands、Tailwind v4�
 - `src/layouts/Layout.astro`：共享布局、Footer；`scripts/build-info.mjs`：构建元信息。
 - `tests/`：Miniflare D1 集成测试、构建/计时测试、桌面/移动端 E2E。
 
-[用户资料与图片上传](docs/profiles-uploads.md) · [管理、权限与反滥用](docs/moderation.md) · [讨论功能与API](docs/discussions.md) · [认证配置与本地邮件流程](docs/auth.md) · [架构、兼容性与后续顺序](docs/architecture.md) · [环境隔离与部署流程](docs/operations.md) · [许可证与素材](docs/licenses.md)
+[提及、站内通知与搜索排序](docs/community.md) · [用户资料与图片上传](docs/profiles-uploads.md) · [管理、权限与反滥用](docs/moderation.md) · [讨论功能与API](docs/discussions.md) · [认证配置与本地邮件流程](docs/auth.md) · [架构、兼容性与后续顺序](docs/architecture.md) · [环境隔离与部署流程](docs/operations.md) · [许可证与素材](docs/licenses.md)
 
 ## 当前功能
 
@@ -56,6 +56,7 @@ Astro 7 + TypeScript strict、Cloudflare adapter、React Islands、Tailwind v4�
 - 管理员/版主后台、角色管理、封禁/解封、内容隐藏/恢复、节点管理、举报处理及原子审核日志。
 - Turnstile 服务端严格验证适配、本地一次性模拟挑战、D1 持久化发帖/回复与举报限流。
 - 用户主页、显示名称/简介/头像编辑；前端压缩转 WebP，服务端真实解码校验，原生 R2 存储、图片插入 Markdown 与本人文件管理。
+- @ 用户安全解析、提及/回复站内通知、私有已读状态和未读数；基础中英文搜索及热门/活跃排序。
 - Footer 版本、真实构建 SHA（无 Git 为 dev）、服务端测量值和 Server-Timing。
 - GitHub Actions 验证流程，**不包含部署或资源创建步骤**。
 
@@ -99,7 +100,7 @@ E2E 每轮在 `.cache/e2e/` 创建独立本机 D1，自动迁移和 seed，不�
 ## 未完成与下一阶段
 
 1. 配置并验证真实邮件投递、真实 Turnstile 域名与密钥；完善异常账户诊断与恢复，演练备份恢复。
-2. 用户主页/资料、@ 用户解析与通知、审核运营流程。
+2. 完善审核运营流程与通知偏好。
 3. 头像/媒体审核运营与故障回收；验收真实 R2 和存储恢复流程。
 4. 搜索、热门/活跃排序、RSS/Sitemap、SEO、英语语言包、缓存和实际 Test 部署验收。
 

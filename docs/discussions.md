@@ -22,11 +22,11 @@ remark-parse → remark-gfm → remark-rehype → rehype-sanitize
 
 不启用原始 HTML；使用 sanitizer 默认 tag/attribute/protocol/clobber 规则，再由可信的 highlighter 生成代码 token spans。未知语言作为普通转义代码处理，不做自动语言检测。UI 的 set:html/dangerouslySetInnerHTML 只能消费此管线输出；数据库保存 Markdown 源文。预览与 SSR 使用同一个函数，浏览器测试比较两者 HTML 一致。
 
-Markdown 图片只按 sanitizer 允许的协议输出；外部图片由浏览器直接加载，没有上传、代理或 R2 存储。全局 no-referrer。未实现自动 @ 用户解析或通知；引用中的 @username 是文本。引用内容是用户可编辑的文本快照，原回复删除不会追溯删除其他用户已引用的文字。
+Markdown 图片只按 sanitizer 允许的协议输出；外部图片由浏览器直接加载，上传通过独立同源 API 与 R2 实现，没有图片代理，见 [图片设计](profiles-uploads.md)。全局 no-referrer。Phase 6 已加入普通文本 @ 用户解析与通知；引用中的 @username 保持文本且不投递，见 [通知设计](community.md)。引用内容是用户可编辑的文本快照，原回复删除不会追溯删除其他用户已引用的文字。
 
 所有写方法共用环境、Origin、JSON Content-Type、体积和 Session 校验。客户端不能提交 authorId、权限或状态。SQL 更新条件同时包含作者、可见状态/父主题/节点与 revision，服务端权限不依赖 UI 按钮隐藏。不可见内容返回 404，修改他人公开内容返回 403，过期 revision 返回 409。私有收藏只从当前 Session 取身份，不接受其他用户 ID。
 
-软删除回复保留楼层、作者与时间占位，但公开列表和 SSR 不再返回正文，API body 为 null；数据库仍保留原文。隐藏主题后，其全部回复/互动读写入口以及收藏列表都不可见。没有管理员恢复或删除恢复 UI；管理员/版主权限、审核、封禁、Turnstile 和业务限流属于后续阶段。
+软删除回复保留楼层、作者与时间占位，但公开列表和 SSR 不再返回正文，API body 为 null；数据库仍保留原文。隐藏主题后，其全部回复/互动读写入口以及收藏列表都不可见。Phase 4 已提供管理员/版主隐藏恢复、审核和封禁；作者软删除内容不提供恢复 UI，见 [管理设计](moderation.md)。
 
 ## D1 一致性和迁移
 

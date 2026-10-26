@@ -29,6 +29,55 @@ export function parseCursor(value: string | null): TopicCursor | undefined {
   if (value.length > 200) throw new Error('Invalid cursor');
   return topicCursor.parse(JSON.parse(value));
 }
+export const sortInput = z.enum(['latest', 'hot', 'active']);
+export const searchInput = z
+  .string()
+  .trim()
+  .max(80)
+  .refine(
+    (value) =>
+      !value.includes('\0') && (value.length === 0 || value.length >= 2),
+  );
+const feedCursor = topicCursor
+  .extend({
+    sort: sortInput.optional(),
+    rank: z.number().int().nonnegative().optional(),
+    q: z.string().max(80).optional(),
+  })
+  .strict();
+export type FeedCursor = z.infer<typeof feedCursor>;
+export type FeedOptions = { sort: z.infer<typeof sortInput>; q: string };
+export function parseFeed(params: URLSearchParams) {
+  const options: FeedOptions = {
+    sort: sortInput.parse(params.get('sort') ?? 'latest'),
+    q: searchInput.parse(params.get('q') ?? ''),
+  };
+  const value = params.get('cursor');
+  let cursor: FeedCursor | undefined;
+  if (value !== null) {
+    if (value.length > 700) throw new Error('Invalid cursor');
+    cursor = feedCursor.parse(JSON.parse(value));
+    if (
+      (cursor.sort ?? 'latest') !== options.sort ||
+      (cursor.q ?? '') !== options.q ||
+      (options.sort !== 'latest' && cursor.rank === undefined) ||
+      (options.sort === 'latest' && cursor.rank !== undefined)
+    )
+      throw new Error('Cursor does not match filters');
+  }
+  return { options, cursor };
+}
+export function parseNotificationCursor(value: string | null) {
+  if (value === null) return undefined;
+  if (value.length > 200) throw new Error('Invalid cursor');
+  return z
+    .object({
+      createdAt: z.number().int().nonnegative(),
+      id: z.string().regex(/^[a-f0-9]{32}$/),
+    })
+    .strict()
+    .parse(JSON.parse(value));
+}
 
 export function localWriteAllowed(mode: string, url: string): boolean {
   return (

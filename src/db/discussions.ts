@@ -1,6 +1,8 @@
 import { and, asc, desc, eq, gt, lt, or, sql } from 'drizzle-orm';
 import { activeProfile } from '../security/access';
 import { drizzle } from 'drizzle-orm/d1';
+import { SQLiteSyncDialect } from 'drizzle-orm/sqlite-core';
+import { mentionNames } from '../lib/mentions';
 import {
   bookmarks,
   nodes,
@@ -15,6 +17,43 @@ import type {
   TopicEditInput,
   TopicCursor,
 } from '../lib/contracts';
+
+// Notification INSERT directly follows the mutation: changes() belongs to that write.
+// Unique recipient/source prevents edits and idempotent retries from notifying twice.
+export async function contentWrite(
+  binding: D1Database,
+  query: { sql: string; params: unknown[] },
+  source: {
+    kind: 'topic' | 'reply';
+    id: string;
+    body: string;
+    replyToAuthor?: boolean;
+  },
+) {
+  const reply = source.kind === 'reply',
+    names = JSON.stringify(mentionNames(source.body));
+  const rows = await binding.batch([
+    binding.prepare(query.sql).bind(...query.params),
+    binding
+      .prepare(
+        `INSERT INTO notifications(id,recipient_id,actor_id,topic_id,reply_id,source_key,kind,created_at)
+      SELECT lower(hex(randomblob(16))),p.user_id,${reply ? 'r.author_id' : 't.author_id'},t.id,${reply ? 'r.id' : 'NULL'},?,
+        CASE WHEN p.username IN (SELECT value FROM json_each(?)) THEN 'mention' ELSE 'reply' END,?
+      FROM ${reply ? 'replies r INNER JOIN topics t ON t.id=r.topic_id' : 'topics t'}
+      INNER JOIN nodes n ON n.id=t.node_id CROSS JOIN profiles p
+      INNER JOIN user u ON u.id=p.user_id INNER JOIN account_access a ON a.user_id=u.id
+      WHERE changes()=1 AND ${reply ? "r.id=? AND r.status='published'" : 't.id=?'} AND t.status='published' AND n.hidden=0
+        AND u.email_verified=1 AND a.banned=0 AND p.id!=${reply ? 'r.author_id' : 't.author_id'}
+        AND (p.username IN (SELECT value FROM json_each(?)) ${source.replyToAuthor ? 'OR p.id=t.author_id' : ''})
+      ON CONFLICT(recipient_id,source_key) DO NOTHING`,
+      )
+      .bind(`${source.kind}:${source.id}`, names, Date.now(), source.id, names),
+  ]);
+  return rows[0];
+}
+const notificationVisibility =
+  "t.status='published' AND n.hidden=0 AND (v.reply_id IS NULL OR r.status='published')";
+export type NotificationCursor = { createdAt: number; id: string };
 
 export function discussions(binding: D1Database) {
   const db = drizzle(binding);
@@ -59,8 +98,63 @@ export function discussions(binding: D1Database) {
         : ('conflict' as const);
   }
   return {
+    async unread(userId: string) {
+      return (await binding
+        .prepare(
+          `SELECT count(*) AS count FROM notifications v INNER JOIN topics t ON t.id=v.topic_id INNER JOIN nodes n ON n.id=t.node_id LEFT JOIN replies r ON r.id=v.reply_id WHERE v.recipient_id=? AND v.read_at IS NULL AND ${notificationVisibility} AND EXISTS(SELECT 1 FROM account_access WHERE user_id=? AND banned=0)`,
+        )
+        .bind(userId, userId)
+        .first<{ count: number }>())!.count;
+    },
+    async notifications(userId: string, cursor?: NotificationCursor) {
+      const result = await binding
+        .prepare(
+          `SELECT v.id,v.kind,v.created_at AS createdAt,v.read_at AS readAt,t.id AS topicId,t.title,r.id AS replyId,r.floor,p.username,p.display_name AS actor
+        FROM notifications v INNER JOIN topics t ON t.id=v.topic_id INNER JOIN nodes n ON n.id=t.node_id INNER JOIN profiles p ON p.id=v.actor_id LEFT JOIN replies r ON r.id=v.reply_id
+        WHERE v.recipient_id=? AND ${notificationVisibility} AND EXISTS(SELECT 1 FROM account_access WHERE user_id=? AND banned=0)
+        ${cursor ? 'AND (v.created_at<? OR (v.created_at=? AND v.id<?))' : ''} ORDER BY v.created_at DESC,v.id DESC LIMIT 21`,
+        )
+        .bind(
+          userId,
+          userId,
+          ...(cursor ? [cursor.createdAt, cursor.createdAt, cursor.id] : []),
+        )
+        .all<{
+          id: string;
+          kind: 'mention' | 'reply';
+          createdAt: number;
+          readAt: number | null;
+          topicId: string;
+          title: string;
+          replyId: string | null;
+          floor: number | null;
+          username: string;
+          actor: string;
+        }>();
+      const items = result.results.slice(0, 20),
+        last = items.at(-1);
+      return {
+        items,
+        nextCursor:
+          result.results.length > 20 && last
+            ? JSON.stringify({ createdAt: last.createdAt, id: last.id })
+            : null,
+      };
+    },
+    async readNotification(userId: string, id: string) {
+      return (
+        (
+          await binding
+            .prepare(
+              `UPDATE notifications SET read_at=coalesce(read_at,?) WHERE id=? AND recipient_id=? AND EXISTS(SELECT 1 FROM account_access WHERE user_id=? AND banned=0) AND id IN(SELECT v.id FROM notifications v INNER JOIN topics t ON t.id=v.topic_id INNER JOIN nodes n ON n.id=t.node_id LEFT JOIN replies r ON r.id=v.reply_id WHERE v.id=? AND ${notificationVisibility}) RETURNING id`,
+            )
+            .bind(Date.now(), id, userId, userId, id)
+            .all()
+        ).results.length === 1
+      );
+    },
     async editTopic(id: string, authorId: string, input: TopicEditInput) {
-      const result = await db
+      const query = db
         .update(topics)
         .set({
           title: input.title,
@@ -77,8 +171,14 @@ export function discussions(binding: D1Database) {
             sql`${topics.id} IN (${visibleTopic(id)})`,
           ),
         )
-        .returning({ id: topics.id });
-      return result[0] ? ('ok' as const) : topicAccess(id, authorId);
+        .returning({ id: topics.id })
+        .toSQL();
+      const result = await contentWrite(binding, query, {
+        kind: 'topic',
+        id,
+        body: input.body,
+      });
+      return result.results[0] ? ('ok' as const) : topicAccess(id, authorId);
     },
     async deleteTopic(id: string, authorId: string, revision: number) {
       const result = await db
@@ -155,11 +255,16 @@ export function discussions(binding: D1Database) {
     async createReply(topicId: string, authorId: string, input: ReplyInput) {
       const id = crypto.randomUUID();
       const now = Date.now();
-      await db.run(sql`INSERT INTO replies (id, topic_id, author_id, floor, body, request_id, created_at, updated_at)
+      await contentWrite(
+        binding,
+        new SQLiteSyncDialect()
+          .sqlToQuery(sql`INSERT INTO replies (id, topic_id, author_id, floor, body, request_id, created_at, updated_at)
         SELECT ${id}, topics.id, ${authorId}, topics.next_reply_floor + 1, ${input.body}, ${input.requestId}, ${now}, ${now}
         FROM topics INNER JOIN nodes ON topics.node_id = nodes.id
         WHERE topics.id = ${topicId} AND topics.status = 'published' AND nodes.hidden = 0 AND ${activeProfile(authorId)}
-        ON CONFLICT(author_id, request_id) DO NOTHING`);
+        ON CONFLICT(author_id, request_id) DO NOTHING`),
+        { kind: 'reply', id, body: input.body, replyToAuthor: true },
+      );
       const existing = (
         await db
           .select({
@@ -193,7 +298,7 @@ export function discussions(binding: D1Database) {
       };
     },
     async editReply(id: string, authorId: string, input: ReplyEditInput) {
-      const result = await db
+      const query = db
         .update(replies)
         .set({
           body: input.body,
@@ -210,8 +315,14 @@ export function discussions(binding: D1Database) {
             sql`${replies.topicId} IN (${db.select({ id: topics.id }).from(topics).innerJoin(nodes, eq(topics.nodeId, nodes.id)).where(visible)})`,
           ),
         )
-        .returning({ id: replies.id });
-      return result[0] ? ('ok' as const) : replyAccess(id, authorId);
+        .returning({ id: replies.id })
+        .toSQL();
+      const result = await contentWrite(binding, query, {
+        kind: 'reply',
+        id,
+        body: input.body,
+      });
+      return result.results[0] ? ('ok' as const) : replyAccess(id, authorId);
     },
     async deleteReply(id: string, authorId: string, revision: number) {
       const result = await db

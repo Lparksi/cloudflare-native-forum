@@ -3,15 +3,19 @@ import { env } from 'cloudflare:workers';
 import Layout from '../layouts/Layout.astro';
 import TopicList from '../components/TopicList.astro';
 import { repository } from '../db/repository';
-import { parseCursor } from '../lib/contracts';
+import { parseFeed } from '../lib/contracts';
 const repo = repository(env.DB);
-let cursor;
+import FeedControls from '../components/FeedControls.astro';
+let feed;
 try {
-  cursor = parseCursor(Astro.url.searchParams.get('cursor'));
+  feed = parseFeed(Astro.url.searchParams);
 } catch {
-  return new Response('分页参数无效', { status: 400 });
+  return new Response('搜索、排序或分页参数无效', { status: 400 });
 }
-const [page, nodes] = await Promise.all([repo.list(cursor), repo.nodes()]);
+const [page, nodes] = await Promise.all([
+  repo.list(feed.cursor, undefined, undefined, feed.options),
+  repo.nodes(),
+]);
 ---
 
 <Layout>
@@ -30,12 +34,22 @@ const [page, nodes] = await Promise.all([repo.list(cursor), repo.nodes()]);
     <section class="panel discussion-panel" aria-label="讨论列表">
       <div class="panel-heading">
         <h2>
-          最新讨论 <span class="small-label">LATEST</span>
+          {feed.options.q
+            ? '搜索结果'
+            : feed.options.sort === 'hot'
+              ? '热门讨论'
+              : feed.options.sort === 'active'
+                ? '活跃讨论'
+                : '最新讨论'}{' '}
+          <span class="small-label">
+            {feed.options.q ? 'SEARCH' : feed.options.sort.toUpperCase()}
+          </span>
         </h2>
         <a class="button compact" href="/new">
           ＋ 发起讨论
         </a>
       </div>
+      <FeedControls options={feed.options} />
       <TopicList {...page} />
     </section>
     <aside>

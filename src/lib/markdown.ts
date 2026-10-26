@@ -5,11 +5,13 @@ import remarkRehype from 'remark-rehype';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeStringify from 'rehype-stringify';
+import { remarkMentions } from './mentions';
 
 // Shared server pipeline for SSR and previews. Never accept raw user HTML.
 const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
+  .use(remarkMentions)
   .use(remarkRehype)
   .use(rehypeSanitize)
   .use(rehypeHighlight, { detect: false, ignoreMissing: true })

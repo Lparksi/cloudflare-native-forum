@@ -1,0 +1,46 @@
+---
+import type { FeedOptions } from '../lib/contracts';
+interface Props {
+  options: FeedOptions;
+}
+const { options } = Astro.props;
+---
+
+<form class="feed-controls" method="get" role="search">
+  <label>
+    搜索讨论
+    <input
+      type="search"
+      name="q"
+      value={options.q}
+      minlength="2"
+      maxlength="80"
+      placeholder="标题或正文关键词"
+    />
+  </label>
+  <label>
+    排序
+    <select name="sort" aria-label="排序">
+      <option value="latest" selected={options.sort === 'latest'}>
+        最新
+      </option>
+      <option value="hot" selected={options.sort === 'hot'}>
+        热门
+      </option>
+      <option value="active" selected={options.sort === 'active'}>
+        活跃
+      </option>
+    </select>
+  </label>
+  <button class="button compact" type="submit">
+    查看
+  </button>
+</form>
+<p class="feed-hint muted">
+  {options.q ? `搜索「${options.q}」 · ` : ''}
+  {options.sort === 'hot'
+    ? '热门：3 × 点赞数 + 回复数'
+    : options.sort === 'active'
+      ? '活跃：按最后回复时间排序；无回复使用发布时间'
+      : '最新：按发布时间排序'}
+</p>

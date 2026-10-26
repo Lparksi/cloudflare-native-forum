@@ -2,7 +2,11 @@
 import '../styles/global.css';
 import { env } from 'cloudflare:workers';
 import { getSession } from '../auth/server';
+import { discussions } from '../db/discussions';
 const session = await getSession(env, Astro.request);
+const unread = session?.user.emailVerified
+  ? await discussions(env.DB).unread(session.user.id)
+  : 0;
 import ThemeToggle from '../components/ThemeToggle';
 import { buildInfo } from '../lib/build-info';
 interface Props {
@@ -55,6 +59,11 @@ const commitUrl =
           <a href="/about">关于</a>
         </nav>
         <ThemeToggle client:load />
+        {session?.user.emailVerified && (
+          <a class="notification-link" href="/notifications">
+            通知{unread > 0 ? ` (${unread})` : ''}
+          </a>
+        )}
         <a class="account-link" href={session ? '/settings' : '/login'}>
           {session ? '我的账户' : '登录'}
         </a>

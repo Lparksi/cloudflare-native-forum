@@ -19,7 +19,7 @@ Better Auth **1.7.13** + `@better-auth/drizzle-adapter` **1.7.13**，使用现�
 - `src/auth/handler.ts`：`/api/auth/*`，沿用 Better Auth 原生响应契约和客户端；不包装为业务 API 格式。
 - `src/auth/mail.ts`：本地收件箱与 Cloudflare Email 原生绑定适配。
 - `src/db/auth-schema.ts`：固定版本 CLI 生成的 user/account/session/verification/rate_limit 及关系。
-- `0001_*.sql`：增量迁移，增加认证表、开发邮件表及 profiles.user_id 可空唯一外键，保留 Phase 1 数据。公开身份在首次发帖时按已验证 Session 用户幂等创建，不给已有开发作者分配登录凭据。
+- `0001_*.sql`：增量迁移，增加认证表、开发邮件表及 profiles.user_id 可空唯一外键，保留 Phase 1 数据。Phase 2 原为首次写入时幂等创建公开身份；Phase 6 的 0007 改为注册触发器初始化固定标识，并为旧账户补齐缺失资料，未验证前不公开主页。不为已有开发作者分配登录凭据。
 - `/register`、`/login`、`/verify-email`（重发）、`/forgot-password`、`/reset-password`、`/settings`。
 - `/dev/mail` 和 `/api/v1/dev/mail?email=`：仅本机开发收件箱。
 

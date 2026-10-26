@@ -37,6 +37,7 @@ import { renderMarkdown } from './markdown';
 import { InvalidImage, MAX_UPLOAD_BYTES, validateImage } from './images';
 import { consumeLimit } from '../security/limits';
 import { profileInput } from './contracts';
+import { parseFeed, parseNotificationCursor } from './contracts';
 
 type ApiEnv = {
   Bindings: Env;
@@ -301,11 +302,50 @@ api.get('/health', async (c) => {
 api.get('/nodes', async (c) =>
   c.json({ data: await repository(c.env.DB).nodes() }),
 );
-api.get('/topics', async (c) =>
-  c.json({
-    data: await repository(c.env.DB).list(cursor(c), c.req.query('node')),
-  }),
-);
+api.get('/topics', async (c) => {
+  let feed;
+  try {
+    feed = parseFeed(new URL(c.req.url).searchParams);
+  } catch {
+    throw new HTTPException(400, { message: '搜索、排序或分页参数无效' });
+  }
+  return c.json({
+    data: await repository(c.env.DB).list(
+      feed.cursor,
+      c.req.query('node'),
+      undefined,
+      feed.options,
+    ),
+  });
+});
+api.get('/notifications', async (c) => {
+  const session = await getSession(c.env, c.req.raw);
+  if (!session?.user.emailVerified)
+    return c.json(error('UNAUTHORIZED', '请先登录'), 401);
+  let after;
+  try {
+    after = parseNotificationCursor(c.req.query('cursor') ?? null);
+  } catch {
+    throw new HTTPException(400, { message: '分页参数无效' });
+  }
+  const repo = discussions(c.env.DB);
+  return c.json({
+    data: {
+      ...(await repo.notifications(session.user.id, after)),
+      unread: await repo.unread(session.user.id),
+    },
+  });
+});
+api.patch('/notifications/:id/read', async (c) => {
+  await input(c, z.object({}).strict());
+  const ok = await discussions(c.env.DB).readNotification(
+    c.get('actor').id,
+    c.req.param('id'),
+  );
+  return ok
+    ? c.json({ data: { status: 'ok' } })
+    : c.json(error('NOT_FOUND', '通知不存在'), 404);
+});
 api.get('/topics/:id', async (c) => {
   const topic = await repository(c.env.DB).topic(c.req.param('id'));
   return topic

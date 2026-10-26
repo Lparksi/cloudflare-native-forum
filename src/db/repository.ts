@@ -1,8 +1,10 @@
 import { and, desc, eq, lt, or, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
+import { SQLiteSyncDialect } from 'drizzle-orm/sqlite-core';
+import { contentWrite } from './discussions';
 import { activeProfile } from '../security/access';
 import { nodes, profiles, topics, uploads } from './schema';
-import type { TopicInput, TopicCursor } from '../lib/contracts';
+import type { TopicInput, FeedCursor, FeedOptions } from '../lib/contracts';
 
 export function repository(binding: D1Database) {
   const db = drizzle(binding);
@@ -32,7 +34,12 @@ export function repository(binding: D1Database) {
             createdAt: profiles.createdAt,
           })
           .from(profiles)
-          .where(eq(profiles.username, username))
+          .where(
+            and(
+              eq(profiles.username, username),
+              sql`(${profiles.userId} IS NULL OR EXISTS(SELECT 1 FROM user WHERE id=${profiles.userId} AND email_verified=1))`,
+            ),
+          )
           .limit(1)
       )[0];
     },
@@ -160,29 +167,52 @@ export function repository(binding: D1Database) {
         .from(nodes)
         .where(eq(nodes.hidden, false))
         .orderBy(nodes.sortOrder, nodes.id),
-    async list(cursor?: TopicCursor, slug?: string, authorId?: string) {
+    async list(
+      cursor?: FeedCursor,
+      slug?: string,
+      authorId?: string,
+      options: FeedOptions = { sort: 'latest', q: '' },
+    ) {
+      const rank =
+        options.sort === 'hot'
+          ? sql<number>`(${topics.voteCount} * 3 + ${topics.replyCount})`
+          : options.sort === 'active'
+            ? sql<number>`coalesce(${topics.lastRepliedAt},${topics.createdAt})`
+            : sql<number>`${topics.createdAt}`;
+      const query = options.q
+        ? `%${options.q.replace(/[!%_]/g, '!$&')}%`
+        : null;
       const rows = await db
-        .select(selection)
+        .select({ ...selection, rank })
         .from(topics)
         .innerJoin(nodes, eq(topics.nodeId, nodes.id))
         .innerJoin(profiles, eq(topics.authorId, profiles.id))
         .where(
           and(
             visible,
+            query
+              ? sql`(${topics.title} LIKE ${query} ESCAPE '!' OR ${topics.body} LIKE ${query} ESCAPE '!')`
+              : undefined,
             authorId ? eq(topics.authorId, authorId) : undefined,
             slug ? eq(nodes.slug, slug) : undefined,
             cursor
               ? or(
-                  lt(topics.createdAt, cursor.createdAt),
+                  lt(rank, cursor.rank ?? cursor.createdAt),
                   and(
-                    eq(topics.createdAt, cursor.createdAt),
-                    lt(topics.id, cursor.id),
+                    eq(rank, cursor.rank ?? cursor.createdAt),
+                    or(
+                      lt(topics.createdAt, cursor.createdAt),
+                      and(
+                        eq(topics.createdAt, cursor.createdAt),
+                        lt(topics.id, cursor.id),
+                      ),
+                    ),
                   ),
                 )
               : undefined,
           ),
         )
-        .orderBy(desc(topics.createdAt), desc(topics.id))
+        .orderBy(desc(rank), desc(topics.createdAt), desc(topics.id))
         .limit(21);
       const hasNext = rows.length > 20;
       const items = rows.slice(0, 20);
@@ -191,7 +221,14 @@ export function repository(binding: D1Database) {
         items,
         nextCursor:
           hasNext && last
-            ? JSON.stringify({ createdAt: last.createdAt, id: last.id })
+            ? JSON.stringify({
+                createdAt: last.createdAt,
+                id: last.id,
+                ...(options.sort === 'latest'
+                  ? {}
+                  : { sort: options.sort, rank: last.rank }),
+                ...(options.q ? { q: options.q } : {}),
+              })
             : null,
       };
     },
@@ -245,10 +282,15 @@ export function repository(binding: D1Database) {
           ),
         );
       const now = Date.now();
-      const result =
-        await db.run(sql`INSERT INTO topics (id, author_id, node_id, title, body, status, created_at, updated_at, request_id)
-        SELECT ${crypto.randomUUID()}, ${authorId}, id, ${input.title}, ${input.body}, 'published', ${now}, ${now}, ${input.requestId}
-        FROM (${node}) WHERE true ON CONFLICT(author_id, request_id) DO NOTHING`);
+      const id = crypto.randomUUID();
+      const result = await contentWrite(
+        binding,
+        new SQLiteSyncDialect()
+          .sqlToQuery(sql`INSERT INTO topics (id, author_id, node_id, title, body, status, created_at, updated_at, request_id)
+        SELECT ${id}, ${authorId}, id, ${input.title}, ${input.body}, 'published', ${now}, ${now}, ${input.requestId}
+        FROM (${node}) WHERE true ON CONFLICT(author_id, request_id) DO NOTHING`),
+        { kind: 'topic', id, body: input.body },
+      );
       const existing = (
         await db
           .select()

@@ -3,17 +3,20 @@ import { env } from 'cloudflare:workers';
 import Layout from '../../layouts/Layout.astro';
 import TopicList from '../../components/TopicList.astro';
 import { repository } from '../../db/repository';
-import { parseCursor } from '../../lib/contracts';
+import { parseFeed } from '../../lib/contracts';
 const repo = repository(env.DB),
   profile = await repo.publicProfile(Astro.params.username!);
-let cursor;
+import FeedControls from '../../components/FeedControls.astro';
+let feed;
 try {
-  cursor = parseCursor(Astro.url.searchParams.get('cursor'));
+  feed = parseFeed(Astro.url.searchParams);
 } catch {
-  return new Response('分页参数无效', { status: 400 });
+  return new Response('搜索、排序或分页参数无效', { status: 400 });
 }
 if (!profile) Astro.response.status = 404;
-const page = profile ? await repo.list(cursor, undefined, profile.id) : null;
+const page = profile
+  ? await repo.list(feed.cursor, undefined, profile.id, feed.options)
+  : null;
 ---
 
 <Layout title={profile ? `${profile.displayName} 的主页` : '用户不存在'}>
@@ -54,6 +57,7 @@ const page = profile ? await repo.list(cursor, undefined, profile.id) : null;
         <div class="panel-heading">
           <h2>发布的讨论</h2>
         </div>
+        <FeedControls options={feed.options} />
         <TopicList items={page.items} nextCursor={page.nextCursor} />
       </section>
     )}

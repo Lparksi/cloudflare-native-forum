@@ -1,13 +1,16 @@
 ---
 import type { repository } from '../db/repository';
-type Topic = Awaited<
-  ReturnType<ReturnType<typeof repository>['list']>
->['items'][number];
+type Topic = Omit<
+  Awaited<ReturnType<ReturnType<typeof repository>['list']>>['items'][number],
+  'rank'
+>;
 interface Props {
   items: Topic[];
   nextCursor: string | null;
 }
 const { items, nextCursor } = Astro.props;
+const params = new URLSearchParams(Astro.url.searchParams);
+if (nextCursor) params.set('cursor', nextCursor);
 ---
 
 <div class="topic-list">
@@ -53,8 +56,8 @@ const { items, nextCursor } = Astro.props;
       <span class="empty-symbol" aria-hidden="true">
         ＋
       </span>
-      <h2>好讨论，从第一个问题开始</h2>
-      <p>这里还没有主题。分享一个发现，或提出你正在思考的问题。</p>
+      <h2>暂时没有可显示的讨论</h2>
+      <p>可以调整筛选条件，或分享一个新话题。</p>
       <a href="/new" class="text-link">
         开启第一场讨论 →
       </a>
@@ -62,7 +65,7 @@ const { items, nextCursor } = Astro.props;
   )}
 </div>
 {nextCursor && (
-  <a class="next-page" href={`?cursor=${encodeURIComponent(nextCursor)}`}>
-    更早的讨论 ↓
+  <a class="next-page" href={`?${params}`}>
+    下一页讨论 ↓
   </a>
 )}

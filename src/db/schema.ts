@@ -97,6 +97,18 @@ export const topics = sqliteTable(
       t.createdAt,
       t.id,
     ),
+    index('topics_hot').on(
+      t.status,
+      sql`(${t.voteCount} * 3 + ${t.replyCount})`,
+      t.createdAt,
+      t.id,
+    ),
+    index('topics_active').on(
+      t.status,
+      sql`coalesce(${t.lastRepliedAt},${t.createdAt})`,
+      t.createdAt,
+      t.id,
+    ),
     index('topics_node_status_created').on(
       t.nodeId,
       t.status,
@@ -285,4 +297,42 @@ export const localChallenges = sqliteTable(
     expiresAt: integer('expires_at').notNull(),
   },
   (t) => [index('local_challenges_expiry').on(t.expiresAt)],
+);
+export const notifications = sqliteTable(
+  'notifications',
+  {
+    id: text('id').primaryKey(),
+    recipientId: text('recipient_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    actorId: text('actor_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    topicId: text('topic_id')
+      .notNull()
+      .references(() => topics.id, { onDelete: 'cascade' }),
+    replyId: text('reply_id').references(() => replies.id, {
+      onDelete: 'cascade',
+    }),
+    sourceKey: text('source_key').notNull(),
+    kind: text('kind', { enum: ['mention', 'reply'] }).notNull(),
+    createdAt: integer('created_at').notNull(),
+    readAt: integer('read_at'),
+  },
+  (t) => [
+    uniqueIndex('notifications_recipient_source').on(
+      t.recipientId,
+      t.sourceKey,
+    ),
+    index('notifications_recipient_created').on(
+      t.recipientId,
+      t.createdAt,
+      t.id,
+    ),
+    check('notifications_kind', sql`${t.kind} IN ('mention','reply')`),
+    check(
+      'notifications_source',
+      sql`(${t.replyId} IS NULL AND ${t.sourceKey}='topic:' || ${t.topicId} AND ${t.kind}='mention') OR (${t.replyId} IS NOT NULL AND ${t.sourceKey}='reply:' || ${t.replyId})`,
+    ),
+  ],
 );

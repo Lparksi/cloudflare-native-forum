@@ -1,6 +1,6 @@
 # 架构与边界
 
-Phase 5 更新：认证、讨论、管理、用户资料和 R2 图片本地闭环已落地。详见 [认证说明](auth.md) 与 [讨论设计](discussions.md) 及 [管理安全](moderation.md)。
+Phase 6 更新：认证、讨论、管理、资料/图片、提及/通知及搜索排序本地闭环已落地。详见 [认证说明](auth.md) 与 [讨论设计](discussions.md) 及 [管理安全](moderation.md)。
 
 浏览器 → Cloudflare Workers 单入口 `src/worker.ts`。`/api/*` 交给 Hono，其余交给 Astro Cloudflare handler。SSR 与 API 复用 `src/db/repository.ts` / `discussions.ts`，通过 Drizzle D1 driver 使用 DB 绑定。React Islands 用于外观、账户表单、Markdown 编辑预览和讨论交互；Tailwind v4 使用 Vite 插件，视觉 token 与响应式规则位于 global.css。
 
@@ -36,6 +36,8 @@ Better Auth 1.7.13 通过固定版本 CLI 生成认证 Schema，使用 Drizzle a
 
 1. 完成真实邮件投递验证和异常账户恢复流程；认证本地闭环已完成。
 2. 配置真实 Turnstile 站点与 Secret，验收真实 token、域名、action 和重放拒绝。
-3. @用户解析与通知。
-4. 审核运营流程，再推进搜索。
+3. 通知偏好与审核运营流程。
+4. 按真实规模评估搜索分词、索引与查询成本。
 5. R2 远端恢复与媒体审核，SEO/RSS/Sitemap 与经过隔离验证的公共缓存；申请 Test 部署权限后验证。
+
+通知与内容写入使用同一 D1 batch；私有读取始终从当前 Session 取收件人并复查内容可见性。基础搜索为有界返回的 LIKE 子串匹配，热门/活跃为实时游标排行，不提供跨请求快照。详见 [Phase 6 设计](community.md)。
