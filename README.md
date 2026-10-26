@@ -2,7 +2,7 @@
 
 一个 Workers 原生的技术论坛工程，以简单、可靠、低成本为目标。MIT 开源，允许商业使用。
 
-**当前已完成 Phase 2 认证基础，尚不能公开运营。** 已实现注册、登录、数据库 Session、邮箱验证与密码重置，以及 SSR 首页、节点和主题。本地邮件进入开发收件箱；尚未配置真实投递。主题来自真实 D1。
+**当前已完成 Phase 3 核心讨论功能，尚不能公开运营。** 支持 Markdown 与安全预览、线性回复、主题/回复编辑和软删除、点赞收藏，以及已实现的账户认证。本地邮件进入开发收件箱；尚未配置真实投递。内容真实存储于 D1。
 
 ## 本地启动
 
@@ -35,12 +35,12 @@ Astro 7 + TypeScript strict、Cloudflare adapter、React Islands、Tailwind v4�
 
 - `src/worker.ts`：Workers 入口、Hono 分流、响应计时与安全头。
 - `src/lib/api.ts`：API、Zod 校验、同源与本机写入限制。
-- `src/db/schema.ts` / `repository.ts`：公开身份、节点、主题及查询。
+- `src/db/schema.ts` / `repository.ts` / `discussions.ts`：公开身份、节点、主题、回复、互动及权限查询。
 - `db/migrations/`：Drizzle 版本化迁移；`db/seed.sql`：明确的本机 fixtures。
 - `src/layouts/Layout.astro`：共享布局、Footer；`scripts/build-info.mjs`：构建元信息。
 - `tests/`：Miniflare D1 集成测试、构建/计时测试、桌面/移动端 E2E。
 
-[认证配置与本地邮件流程](docs/auth.md) · [架构、兼容性与后续顺序](docs/architecture.md) · [环境隔离与部署流程](docs/operations.md) · [许可证与素材](docs/licenses.md)
+[讨论功能与API](docs/discussions.md) · [认证配置与本地邮件流程](docs/auth.md) · [架构、兼容性与后续顺序](docs/architecture.md) · [环境隔离与部署流程](docs/operations.md) · [许可证与素材](docs/licenses.md)
 
 ## 当前功能
 
@@ -48,11 +48,15 @@ Astro 7 + TypeScript strict、Cloudflare adapter、React Islands、Tailwind v4�
 - 邮箱注册、强制验证后登录、退出、数据库 Session、密码重置及全部旧会话撤销。
 - 本机已登录用户创建主题、刷新后保留；幂等键处理重复及并发提交，冲突返回 409。
 - 明暗/跟随系统主题、响应式布局、键盘焦点和跳到正文链接。
-- 纯文本转义展示，隐藏/删除主题和隐藏节点不对游客读取。
+- Markdown 编辑、同源服务端预览、安全 SSR、GFM 表格与代码高亮；禁止原始 HTML。
+- 线性回复、稳定楼层与游标分页、Markdown 引用。
+- 作者编辑/软删除及 revision 冲突保护，删除回复保留不含正文的占位。
+- 点赞/取消与私有收藏/取消；唯一约束去重，数据库原子更新计数。
+- 隐藏/删除主题和隐藏节点同时限制子回复、互动和收藏列表。
 - Footer 版本、真实构建 SHA（无 Git 为 dev）、服务端测量值和 Server-Timing。
 - GitHub Actions 验证流程，**不包含部署或资源创建步骤**。
 
-API：`GET /api/v1/health`、`GET /api/v1/nodes`、`GET /api/v1/topics?cursor=&node=`、`GET /api/v1/topics/:id`、`POST /api/v1/topics`。成功响应 `{ data }`，失败 `{ error: { code, message } }`。
+API：`GET /api/v1/health`、`GET /api/v1/nodes`、`GET /api/v1/topics?cursor=&node=`、`GET /api/v1/topics/:id`、`POST /api/v1/topics`。成功响应 `{ data }`，失败 `{ error: { code, message } }`。新增编辑、删除、回复和互动 API 详见 [讨论接口](docs/discussions.md#api)。
 
 ## 构建信息与缓存
 
@@ -92,8 +96,8 @@ E2E 使用已迁移和 seed 的本机 D1，会添加测试主题。请勿对生�
 ## 未完成与下一阶段
 
 1. 配置并验证真实邮件投递；完善角色、用户状态、异常账户诊断与恢复。
-2. Turnstile、业务发帖限流、封禁与资源所有权检查；认证限流已落地，解除公共写入门槛前仍须完成其余措施。
-3. 回复、编辑/软删除 UI、Markdown 安全渲染和代码高亮、点赞收藏。
+2. Turnstile、业务发帖/回复限流、封禁与管理员/版主授权；作者所有权检查和认证限流已落地，解除公共写入门槛前仍须完成其余措施。
+3. 用户主页/资料、@ 用户解析与通知、完整审核运营功能。
 4. 管理审核/举报/日志、通知、用户资料、R2 上传与文件校验。
 5. 搜索、热门/活跃排序、RSS/Sitemap、SEO、英语语言包、缓存和实际 Test 部署验收。
 

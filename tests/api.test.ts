@@ -122,6 +122,7 @@ describe('local D1 topic API', () => {
         headers: {
           Origin: 'http://localhost',
           'Content-Type': 'application/json',
+          Cookie: cookie,
         },
         body: '{',
       },

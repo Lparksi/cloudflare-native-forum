@@ -25,6 +25,9 @@ const { items, nextCursor } = Astro.props;
             {topic.node}
           </a>
           <span>{topic.author}</span>
+          <span>
+            {topic.replyCount} 回复 · {topic.voteCount} 赞
+          </span>
           <time datetime={new Date(topic.createdAt).toISOString()}>
             {new Date(topic.createdAt).toISOString().slice(0, 10)}
           </time>

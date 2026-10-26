@@ -29,13 +29,14 @@ test('create, persist, render safely and browse a topic', async ({ page }) => {
   await page.getByLabel('主题标题').fill(title);
   await page
     .getByLabel('正文')
-    .fill('<script>window.xss = true</script>\n一条真实保存的讨论。');
+    .fill('**一条真实保存的讨论**\n\n<script>window.xss = true</script>');
   await page.getByRole('button', { name: '发布主题' }).click();
   await expect(page).toHaveURL(/\/t\/[a-f0-9-]+/);
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
-  await expect(page.locator('.topic-body')).toContainText(
-    '<script>window.xss = true</script>',
+  await expect(page.locator('.topic-body strong')).toHaveText(
+    '一条真实保存的讨论',
   );
+  await expect(page.locator('.topic-body script')).toHaveCount(0);
   expect(await page.evaluate(() => Object.hasOwn(window, 'xss'))).toBe(false);
   await page.reload();
   await expect(page.getByRole('heading', { name: title })).toBeVisible();

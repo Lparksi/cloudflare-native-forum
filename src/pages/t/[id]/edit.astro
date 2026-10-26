@@ -1,0 +1,30 @@
+---
+import { env } from 'cloudflare:workers';
+import Layout from '../../../layouts/Layout.astro';
+import { repository } from '../../../db/repository';
+import { getSession } from '../../../auth/server';
+import { localWriteAllowed } from '../../../lib/contracts';
+import TopicComposer from '../../../components/TopicComposer';
+const session = await getSession(env, Astro.request);
+if (!session) return Astro.redirect('/login');
+const topic = await repository(env.DB).topic(Astro.params.id!);
+const allowed =
+  topic &&
+  topic.authorId === `member-${session.user.id}` &&
+  session.user.emailVerified &&
+  localWriteAllowed(env.APP_ENV, Astro.url.href);
+if (!allowed) Astro.response.status = topic ? 403 : 404;
+---
+
+<Layout title="编辑主题">
+  <div class="narrow">
+    <section class="panel padded">
+      <h1>编辑主题</h1>
+      {allowed ? (
+        <TopicComposer nodes={[]} topic={topic} client:load />
+      ) : (
+        <p>主题不存在，或你没有编辑权限。</p>
+      )}
+    </section>
+  </div>
+</Layout>

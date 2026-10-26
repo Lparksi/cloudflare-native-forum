@@ -6,6 +6,7 @@ import {
   index,
   uniqueIndex,
   check,
+  primaryKey,
 } from 'drizzle-orm/sqlite-core';
 
 import { user } from './auth-schema';
@@ -55,6 +56,11 @@ export const topics = sqliteTable(
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull(),
     requestId: text('request_id').notNull(),
+    revision: integer('revision').notNull().default(1),
+    replyCount: integer('reply_count').notNull().default(0),
+    nextReplyFloor: integer('next_reply_floor').notNull().default(0),
+    lastRepliedAt: integer('last_replied_at'),
+    voteCount: integer('vote_count').notNull().default(0),
   },
   (t) => [
     index('topics_status_created').on(t.status, t.createdAt, t.id),
@@ -68,6 +74,10 @@ export const topics = sqliteTable(
     check(
       'topics_status_valid',
       sql`${t.status} IN ('published', 'hidden', 'deleted')`,
+    ),
+    check(
+      'topics_counters_valid',
+      sql`${t.replyCount} >= 0 AND ${t.nextReplyFloor} >= ${t.replyCount} AND ${t.voteCount} >= 0 AND ${t.revision} > 0`,
     ),
     check('topics_title_length', sql`length(${t.title}) BETWEEN 3 AND 120`),
     check('topics_body_length', sql`length(${t.body}) BETWEEN 1 AND 20000`),
@@ -88,5 +98,67 @@ export const devMail = sqliteTable(
   (t) => [
     index('dev_mail_expiry').on(t.expiresAt),
     index('dev_mail_recipient_created').on(t.to, t.createdAt),
+  ],
+);
+
+export const replies = sqliteTable(
+  'replies',
+  {
+    id: text('id').primaryKey(),
+    topicId: text('topic_id')
+      .notNull()
+      .references(() => topics.id),
+    authorId: text('author_id')
+      .notNull()
+      .references(() => profiles.id),
+    floor: integer('floor').notNull(),
+    body: text('body').notNull(),
+    status: text('status', { enum: ['published', 'hidden', 'deleted'] })
+      .notNull()
+      .default('published'),
+    requestId: text('request_id').notNull(),
+    revision: integer('revision').notNull().default(1),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  (t) => [
+    uniqueIndex('replies_topic_floor').on(t.topicId, t.floor),
+    uniqueIndex('replies_author_request').on(t.authorId, t.requestId),
+    index('replies_topic_status_created').on(t.topicId, t.status, t.createdAt),
+    check('replies_body_length', sql`length(${t.body}) BETWEEN 1 AND 20000`),
+    check(
+      'replies_status_valid',
+      sql`${t.status} IN ('published', 'hidden', 'deleted')`,
+    ),
+    check('replies_numbers_valid', sql`${t.floor} > 0 AND ${t.revision} > 0`),
+  ],
+);
+export const topicVotes = sqliteTable(
+  'topic_votes',
+  {
+    topicId: text('topic_id')
+      .notNull()
+      .references(() => topics.id),
+    profileId: text('profile_id')
+      .notNull()
+      .references(() => profiles.id),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.topicId, t.profileId] })],
+);
+export const bookmarks = sqliteTable(
+  'bookmarks',
+  {
+    topicId: text('topic_id')
+      .notNull()
+      .references(() => topics.id),
+    profileId: text('profile_id')
+      .notNull()
+      .references(() => profiles.id),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.profileId, t.topicId] }),
+    index('bookmarks_topic').on(t.topicId),
   ],
 );

@@ -36,3 +36,30 @@ export function localWriteAllowed(mode: string, url: string): boolean {
     ['localhost', '127.0.0.1', '[::1]'].includes(new URL(url).hostname)
   );
 }
+
+export const bodyInput = topicInput.shape.body;
+export const revisionInput = z
+  .object({ revision: z.number().int().positive() })
+  .strict();
+export const topicEditInput = z
+  .object({
+    title: topicInput.shape.title,
+    body: bodyInput,
+    revision: revisionInput.shape.revision,
+  })
+  .strict();
+export const replyInput = z
+  .object({ body: bodyInput, requestId: z.uuid() })
+  .strict();
+export const replyEditInput = z
+  .object({ body: bodyInput, revision: revisionInput.shape.revision })
+  .strict();
+export const previewInput = z.object({ body: bodyInput }).strict();
+export const replyCursor = z.coerce
+  .number()
+  .int()
+  .nonnegative()
+  .max(Number.MAX_SAFE_INTEGER);
+export type ReplyInput = z.infer<typeof replyInput>;
+export type TopicEditInput = z.infer<typeof topicEditInput>;
+export type ReplyEditInput = z.infer<typeof replyEditInput>;

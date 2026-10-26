@@ -1,0 +1,36 @@
+---
+import { env } from 'cloudflare:workers';
+import Layout from '../layouts/Layout.astro';
+import TopicList from '../components/TopicList.astro';
+import { discussions } from '../db/discussions';
+import { getSession } from '../auth/server';
+import { parseCursor } from '../lib/contracts';
+const session = await getSession(env, Astro.request);
+if (!session) return Astro.redirect('/login');
+let cursor;
+try {
+  cursor = parseCursor(Astro.url.searchParams.get('cursor'));
+} catch {
+  return new Response('分页参数无效', { status: 400 });
+}
+const page = await discussions(env.DB).bookmarks(
+  `member-${session.user.id}`,
+  cursor,
+);
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+---
+
+<Layout title="我的收藏">
+  <section class="intro">
+    <div class="eyebrow">SAVED FOR LATER</div>
+    <h1>我的收藏</h1>
+    <p>只有你能查看此列表，已移除的主题不会展示。</p>
+  </section>
+  <section class="panel">
+    {page.items.length ? (
+      <TopicList {...page} />
+    ) : (
+      <p class="padded muted">还没有收藏的主题。</p>
+    )}
+  </section>
+</Layout>

@@ -35,3 +35,14 @@ GitHub Actions 已编写但尚未在远端运行；D1 云端行为、Test/Produc
 - 独立 Astra High 只读审查发现默认 update-user 绕过名称契约、平台 invocation logs 可采集 token URL，两者已修复；补充 update-user 的实际回归测试，并关闭 invocation logs/tracing。修正文档限流为每 IP、每路径默认值。
 - 核对构建产物：本地 Secret 仅出现在适配器为 preview 复制的 dist/server/.dev.vars，不进入客户端 bundle；HTTP /.dev.vars 返回 404。该本地文件与整个 dist 均被 Git 忽略，不应公开分发。
 - 尚未配置真实邮件域名/投递，未发送真实邮件、未创建远端资源、未部署；Test/Production 默认认证关闭。GitHub Actions 尚未远端运行。D1 多步注册不具有交互式事务回滚，重置故障行为已测试并在 auth.md 说明。
+
+## Phase 3 讨论验证（2026-10-26）
+
+- `pnpm test`：**39 项通过**（7 个文件），包括原认证回归。新增 Markdown GFM/高亮/未知语言、脚本与危险协议、HTML/DOM clobber/Footer 伪造清理，预览认证，主题/回复作者所有权，乐观版本冲突，稳定楼层并发分配，重复回复幂等，软删除正文隐藏，计数/最后回复时间，计数故障时原插入回滚，楼层游标，点赞去重，收藏隔离和不可见父级的全部操作拒绝。
+- `tests/migrations.test.ts` 从 Phase 2 Schema 和已有主题/作者记录开始应用 0002，验证数据、外键与新增默认值保留。没有重置数据库或修改旧迁移。本机执行前通过 Wrangler export 备份，再应用增量迁移成功。
+- `pnpm test:e2e`：**8 项通过**，桌面与 iPhone 13 viewport 均通过完整 Markdown 预览 → 发布 → 点赞/收藏 → 编辑主题 → 回复/引用 → 编辑回复 → 软删除回复占位 → 取消互动 → 软删除主题流程；保留认证、基础论坛及 Footer 元信息/计时断言。
+- 首次浏览器回归定位到预填 Markdown 的 textarea 隐式 label 文本匹配问题，增加明确 aria-label 后重跑完整流程通过。没有靠延长超时绕过失败。
+- `pnpm typecheck`、`pnpm lint`、`pnpm format:check`、`pnpm build`、`pnpm peers check` 通过。构建产物在本机 workerd 实际运行，Markdown 管线没有 Node-only 兼容补丁。
+- `pnpm check:licenses`：567 条许可记录通过，609 个已安装包版本的通知已更新；构建信息与基础 Secret 检查通过。
+- 独立 Astra High 只读安全审查未发现阻塞项，核对了 SQL 所有权/父级可见性、删除正文不泄露、Markdown 链、原子楼层/计数和收藏 Session 隔离；按其指出的覆盖缺口补充了隐藏父级下主题 PATCH/DELETE 与互动 DELETE 的测试断言。
+- 仍未部署或验证远端 D1；Test/Production 写入限制保留。没有实现管理员/版主、Turnstile、业务限流、@ 用户解析/通知和真实邮件投递，不能据此声称生产就绪。

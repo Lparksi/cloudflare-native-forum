@@ -13,6 +13,8 @@ export function repository(binding: D1Database) {
     slug: nodes.slug,
     username: profiles.username,
     author: profiles.displayName,
+    replyCount: topics.replyCount,
+    voteCount: topics.voteCount,
   };
   const visible = and(eq(topics.status, 'published'), eq(nodes.hidden, false));
   return {
@@ -59,7 +61,14 @@ export function repository(binding: D1Database) {
     async topic(id: string) {
       return (
         await db
-          .select({ ...selection, body: topics.body })
+          .select({
+            ...selection,
+            body: topics.body,
+            authorId: topics.authorId,
+            revision: topics.revision,
+            updatedAt: topics.updatedAt,
+            lastRepliedAt: topics.lastRepliedAt,
+          })
           .from(topics)
           .innerJoin(nodes, eq(topics.nodeId, nodes.id))
           .innerJoin(profiles, eq(topics.authorId, profiles.id))

@@ -1,0 +1,30 @@
+---
+import { env } from 'cloudflare:workers';
+import Layout from '../../../layouts/Layout.astro';
+import { discussions } from '../../../db/discussions';
+import { getSession } from '../../../auth/server';
+import { localWriteAllowed } from '../../../lib/contracts';
+import ReplyComposer from '../../../components/ReplyComposer';
+const session = await getSession(env, Astro.request);
+if (!session) return Astro.redirect('/login');
+const reply = await discussions(env.DB).reply(Astro.params.id!);
+const allowed =
+  reply &&
+  reply.authorId === `member-${session.user.id}` &&
+  session.user.emailVerified &&
+  localWriteAllowed(env.APP_ENV, Astro.url.href);
+if (!allowed) Astro.response.status = reply ? 403 : 404;
+---
+
+<Layout title="编辑回复">
+  <div class="narrow">
+    <section class="panel padded">
+      <h1>编辑回复</h1>
+      {allowed ? (
+        <ReplyComposer topicId={reply.topicId} reply={reply} client:load />
+      ) : (
+        <p>回复不存在，或你没有编辑权限。</p>
+      )}
+    </section>
+  </div>
+</Layout>

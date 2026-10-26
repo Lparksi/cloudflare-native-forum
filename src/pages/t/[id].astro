@@ -2,8 +2,45 @@
 import { env } from 'cloudflare:workers';
 import Layout from '../../layouts/Layout.astro';
 import { repository } from '../../db/repository';
-const topic = await repository(env.DB).topic(Astro.params.id!);
+import { discussions } from '../../db/discussions';
+import { getSession } from '../../auth/server';
+import { renderMarkdown } from '../../lib/markdown';
+import { localWriteAllowed, replyCursor } from '../../lib/contracts';
+import ContentActions from '../../components/ContentActions';
+import ReplyComposer from '../../components/ReplyComposer';
+import TopicInteractions from '../../components/TopicInteractions';
+const id = Astro.params.id!;
+const topic = await repository(env.DB).topic(id);
 if (!topic) Astro.response.status = 404;
+const after = replyCursor.safeParse(Astro.url.searchParams.get('after') ?? 0);
+if (!after.success) return new Response('分页参数无效', { status: 400 });
+const repo = discussions(env.DB);
+const session = await getSession(env, Astro.request);
+const viewer = session ? `member-${session.user.id}` : '';
+const writable =
+  !!session?.user.emailVerified &&
+  localWriteAllowed(env.APP_ENV, Astro.url.href);
+const page = topic
+  ? await repo.listReplies(id, after.data)
+  : { items: [], nextCursor: null };
+const topicHtml = topic ? await renderMarkdown(topic.body) : '';
+const rows = await Promise.all(
+  page.items.map(async (reply) => ({
+    ...reply,
+    html: reply.body ? await renderMarkdown(reply.body) : '',
+  })),
+);
+const state = topic ? await repo.interactionState(id, viewer) : null;
+const quoted = rows.find(
+  (row) => row.id === Astro.url.searchParams.get('quote') && row.body,
+);
+const quote = quoted
+  ? `> [#${quoted.floor}](/t/${id}?after=${Math.floor((quoted.floor - 1) / 30) * 30}#reply-${quoted.id}) @${quoted.username}\n${quoted
+      .body!.slice(0, 1000)
+      .split('\n')
+      .map((line) => `> ${line}`)
+      .join('\n')}\n\n`
+  : '';
 ---
 
 <Layout title={topic?.title ?? '主题不存在'}>
@@ -27,9 +64,24 @@ if (!topic) Astro.response.status = 404;
                 .slice(0, 16)}{' '}
               UTC
             </time>
+            {topic.revision > 1 && <span>已编辑</span>}
           </p>
-          <div class="topic-body">{topic.body}</div>
-          <div class="stage-note">回复、互动与用户认证将在后续阶段开放。</div>
+          <div class="topic-body markdown" set:html={topicHtml} />
+          {writable && viewer === topic.authorId && (
+            <ContentActions
+              kind="topic"
+              id={id}
+              revision={topic.revision}
+              client:load
+            />
+          )}
+          {writable && state ? (
+            <TopicInteractions topicId={id} initial={state} client:load />
+          ) : (
+            <p class="stage-note">
+              {topic.voteCount} 次点赞 · <a href="/login">登录后参与讨论</a>
+            </p>
+          )}
         </>
       ) : (
         <>
@@ -38,5 +90,89 @@ if (!topic) Astro.response.status = 404;
         </>
       )}
     </article>
+    {topic && (
+      <>
+        <section class="panel reply-panel" aria-label="回复列表">
+          <div class="panel-heading">
+            <h2>{topic.replyCount} 条回复</h2>
+            {topic.lastRepliedAt && (
+              <time class="muted">
+                最近回复{' '}
+                {new Date(topic.lastRepliedAt)
+                  .toISOString()
+                  .slice(0, 16)
+                  .replace('T', ' ')}{' '}
+                UTC
+              </time>
+            )}
+          </div>
+          {after.data > 0 && (
+            <a class="next-page" href={`/t/${id}`}>
+              从第一楼开始查看 ↑
+            </a>
+          )}
+          {rows.map((reply) => (
+            <article class="reply-row" id={`reply-${reply.id}`}>
+              <div class="reply-meta">
+                <strong>{reply.author}</strong>
+                <span>#{reply.floor}</span>
+                <time datetime={new Date(reply.createdAt).toISOString()}>
+                  {new Date(reply.createdAt)
+                    .toISOString()
+                    .slice(0, 16)
+                    .replace('T', ' ')}{' '}
+                  UTC
+                </time>
+                {reply.revision > 1 && reply.status === 'published' && (
+                  <span>已编辑</span>
+                )}
+              </div>
+              {reply.status === 'published' ? (
+                <>
+                  <div class="reply-body markdown" set:html={reply.html} />
+                  <div class="reply-controls">
+                    {writable && (
+                      <a
+                        href={`?after=${after.data}&quote=${reply.id}#reply-form`}
+                      >
+                        引用 #{reply.floor}
+                      </a>
+                    )}
+                    {writable && viewer === reply.authorId && (
+                      <ContentActions
+                        kind="reply"
+                        id={reply.id}
+                        revision={reply.revision}
+                        client:load
+                      />
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p class="muted">此回复已移除</p>
+              )}
+            </article>
+          ))}
+          {rows.length === 0 && (
+            <p class="padded muted">还没有回复，分享你的想法吧。</p>
+          )}
+          {page.nextCursor !== null && (
+            <a class="next-page" href={`?after=${page.nextCursor}`}>
+              后续回复 ↓
+            </a>
+          )}
+        </section>
+        <section class="panel padded reply-panel" id="reply-form">
+          <h2>参与讨论</h2>
+          {writable ? (
+            <ReplyComposer topicId={id} quote={quote} client:load />
+          ) : (
+            <p class="muted">
+              <a href="/login">登录并验证邮箱后回复</a>；当前只开放本机写入。
+            </p>
+          )}
+        </section>
+      </>
+    )}
   </div>
 </Layout>
