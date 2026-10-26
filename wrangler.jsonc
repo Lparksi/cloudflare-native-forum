@@ -1,0 +1,45 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-native-forum-local",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-10-26",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": { "enabled": true, "head_sampling_rate": 0.1 },
+  "vars": { "APP_ENV": "local" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "forum-local",
+      "database_id": "00000000-0000-0000-0000-000000000001",
+      "migrations_dir": "db/migrations",
+    },
+  ],
+  "env": {
+    "test": {
+      "name": "cloudflare-native-forum-test",
+      "vars": { "APP_ENV": "test" },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "forum-test",
+          "database_id": "00000000-0000-0000-0000-000000000002",
+          "migrations_dir": "db/migrations",
+        },
+      ],
+    },
+    "production": {
+      "name": "cloudflare-native-forum-production",
+      "vars": { "APP_ENV": "production" },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "forum-production",
+          "database_id": "00000000-0000-0000-0000-000000000003",
+          "migrations_dir": "db/migrations",
+        },
+      ],
+    },
+  },
+}

@@ -1,0 +1,27 @@
+---
+import { env } from 'cloudflare:workers';
+import Layout from '../layouts/Layout.astro';
+import TopicComposer from '../components/TopicComposer';
+import { repository } from '../db/repository';
+import { localWriteAllowed } from '../lib/contracts';
+const allowed = localWriteAllowed(env.APP_ENV, Astro.url.href);
+const nodes = allowed ? await repository(env.DB).nodes() : [];
+if (!allowed) Astro.response.status = 403;
+---
+
+<Layout title="发起讨论">
+  <div class="narrow">
+    <a class="breadcrumb" href="/">
+      ← 返回讨论
+    </a>
+    <section class="panel padded">
+      <div class="eyebrow">START A CONVERSATION</div>
+      <h1>发起讨论</h1>
+      {allowed ? (
+        <TopicComposer nodes={nodes} client:load />
+      ) : (
+        <p>本阶段尚未开放公共发帖。请在本机开发环境验证主题写入。</p>
+      )}
+    </section>
+  </div>
+</Layout>

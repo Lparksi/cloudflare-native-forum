@@ -1,0 +1,55 @@
+---
+import type { repository } from '../db/repository';
+type Topic = Awaited<
+  ReturnType<ReturnType<typeof repository>['list']>
+>['items'][number];
+interface Props {
+  items: Topic[];
+  nextCursor: string | null;
+}
+const { items, nextCursor } = Astro.props;
+---
+
+<div class="topic-list">
+  {items.map((topic) => (
+    <article class="topic-row">
+      <div class="avatar" aria-hidden="true">
+        {topic.author.slice(0, 1)}
+      </div>
+      <div class="topic-content">
+        <a class="topic-title" href={`/t/${topic.id}`}>
+          {topic.title}
+        </a>
+        <div class="topic-meta">
+          <a class="node-chip" href={`/go/${topic.slug}`}>
+            {topic.node}
+          </a>
+          <span>{topic.author}</span>
+          <time datetime={new Date(topic.createdAt).toISOString()}>
+            {new Date(topic.createdAt).toISOString().slice(0, 10)}
+          </time>
+        </div>
+      </div>
+      <span class="topic-arrow" aria-hidden="true">
+        ↗
+      </span>
+    </article>
+  ))}
+  {items.length === 0 && (
+    <div class="empty">
+      <span class="empty-symbol" aria-hidden="true">
+        ＋
+      </span>
+      <h2>好讨论，从第一个问题开始</h2>
+      <p>这里还没有主题。分享一个发现，或提出你正在思考的问题。</p>
+      <a href="/new" class="text-link">
+        开启第一场讨论 →
+      </a>
+    </div>
+  )}
+</div>
+{nextCursor && (
+  <a class="next-page" href={`?cursor=${encodeURIComponent(nextCursor)}`}>
+    更早的讨论 ↓
+  </a>
+)}

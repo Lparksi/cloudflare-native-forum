@@ -1,0 +1,86 @@
+---
+import '../styles/global.css';
+import ThemeToggle from '../components/ThemeToggle';
+import { buildInfo } from '../lib/build-info';
+interface Props {
+  title?: string;
+  description?: string;
+}
+const {
+  title = '技术与想法，在这里相遇',
+  description = '一个关于开发、基础设施与创造的技术社区。',
+} = Astro.props;
+const commitUrl =
+  buildInfo.repositoryUrl && buildInfo.commitSha !== 'dev'
+    ? `${buildInfo.repositoryUrl}/commit/${buildInfo.commitSha}`
+    : null;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · 边集</title>
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="light dark" />
+    <script is:inline>
+      try {
+        const t = localStorage.getItem('forum-theme');
+        if (t === 'light' || t === 'dark')
+          document.documentElement.dataset.theme = t;
+      } catch {
+        /* Storage may be disabled. */
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">
+      跳到正文
+    </a>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="/" aria-label="边集首页">
+          <span class="brand-mark">边</span>
+          <span>
+            边集 <small>EDGE COMMONS</small>
+          </span>
+        </a>
+        <nav aria-label="主导航">
+          <a href="/">讨论</a>
+          <a href="/nodes">节点</a>
+          <a href="/about">关于</a>
+        </nav>
+        <ThemeToggle client:load />
+      </div>
+    </header>
+    <main id="main" class="shell">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div>
+        <span>© {new Date().getUTCFullYear()} 边集</span>
+        <a href="/about#license">MIT License</a>
+        <span>为好奇心，留一块地方。</span>
+      </div>
+      <div class="build-info">
+        <span>v{buildInfo.version}</span>
+        <span>·</span>
+        {commitUrl ? (
+          <a
+            href={commitUrl}
+            title={buildInfo.commitSha}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {buildInfo.shortCommitSha}
+          </a>
+        ) : (
+          <span title={buildInfo.commitSha}>{buildInfo.shortCommitSha}</span>
+        )}
+        <span>·</span>
+        <span data-server-timing>Server —</span>
+      </div>
+    </footer>
+  </body>
+</html>

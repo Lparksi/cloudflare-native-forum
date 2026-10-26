@@ -1,0 +1,42 @@
+---
+import { env } from 'cloudflare:workers';
+import Layout from '../../layouts/Layout.astro';
+import { repository } from '../../db/repository';
+const topic = await repository(env.DB).topic(Astro.params.id!);
+if (!topic) Astro.response.status = 404;
+---
+
+<Layout title={topic?.title ?? '主题不存在'}>
+  <div class="narrow">
+    <a href="/" class="breadcrumb">
+      ← 返回讨论
+    </a>
+    <article class="panel padded">
+      {topic ? (
+        <>
+          <a class="node-chip" href={`/go/${topic.slug}`}>
+            {topic.node}
+          </a>
+          <h1 class="detail-title">{topic.title}</h1>
+          <p class="topic-meta">
+            {topic.author} ·{' '}
+            <time datetime={new Date(topic.createdAt).toISOString()}>
+              {new Date(topic.createdAt)
+                .toISOString()
+                .replace('T', ' ')
+                .slice(0, 16)}{' '}
+              UTC
+            </time>
+          </p>
+          <div class="topic-body">{topic.body}</div>
+          <div class="stage-note">回复、互动与用户认证将在后续阶段开放。</div>
+        </>
+      ) : (
+        <>
+          <h1>主题不存在</h1>
+          <p>此主题可能已被隐藏或删除。</p>
+        </>
+      )}
+    </article>
+  </div>
+</Layout>

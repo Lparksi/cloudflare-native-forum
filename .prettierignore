@@ -1,0 +1,12 @@
+node_modules
+dist
+.astro
+.wrangler
+pnpm-lock.yaml
+worker-configuration.d.ts
+db/migrations/meta
+playwright-report
+test-results
+
+.cache
+THIRD_PARTY_NOTICES.txt

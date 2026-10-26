@@ -1,0 +1,40 @@
+---
+import { env } from 'cloudflare:workers';
+import Layout from '../../layouts/Layout.astro';
+import TopicList from '../../components/TopicList.astro';
+import { repository } from '../../db/repository';
+import { parseCursor } from '../../lib/contracts';
+const repo = repository(env.DB);
+const node = (await repo.nodes()).find(
+  (node) => node.slug === Astro.params.slug,
+);
+if (!node) Astro.response.status = 404;
+let cursor;
+try {
+  cursor = parseCursor(Astro.url.searchParams.get('cursor'));
+} catch {
+  return new Response('分页参数无效', { status: 400 });
+}
+const page = node ? await repo.list(cursor, node.slug) : null;
+---
+
+<Layout title={node?.name ?? '节点不存在'}>
+  <section class="intro">
+    <a class="breadcrumb" href="/nodes">
+      ← 全部节点
+    </a>
+    <h1>{node?.name ?? '节点不存在'}</h1>
+    <p>{node?.description}</p>
+  </section>
+  {page && (
+    <section class="panel">
+      <div class="panel-heading">
+        <h2>节点讨论</h2>
+        <a class="button compact" href="/new">
+          ＋ 发起讨论
+        </a>
+      </div>
+      <TopicList {...page} />
+    </section>
+  )}
+</Layout>

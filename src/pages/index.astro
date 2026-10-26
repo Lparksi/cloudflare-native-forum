@@ -1,0 +1,72 @@
+---
+import { env } from 'cloudflare:workers';
+import Layout from '../layouts/Layout.astro';
+import TopicList from '../components/TopicList.astro';
+import { repository } from '../db/repository';
+import { parseCursor } from '../lib/contracts';
+const repo = repository(env.DB);
+let cursor;
+try {
+  cursor = parseCursor(Astro.url.searchParams.get('cursor'));
+} catch {
+  return new Response('分页参数无效', { status: 400 });
+}
+const [page, nodes] = await Promise.all([repo.list(cursor), repo.nodes()]);
+---
+
+<Layout>
+  <section class="intro">
+    <div class="eyebrow">
+      <span class="status-dot"></span> A PLACE FOR CURIOUS MINDS
+    </div>
+    <h1>
+      技术与想法，
+      <br class="mobile-break" />
+      在这里相遇<span>。</span>
+    </h1>
+    <p>交流问题，分享创造。让每一个认真思考，都找到回应。</p>
+  </section>
+  <div class="columns">
+    <section class="panel discussion-panel" aria-label="讨论列表">
+      <div class="panel-heading">
+        <h2>
+          最新讨论 <span class="small-label">LATEST</span>
+        </h2>
+        <a class="button compact" href="/new">
+          ＋ 发起讨论
+        </a>
+      </div>
+      <TopicList {...page} />
+    </section>
+    <aside>
+      <section class="panel welcome">
+        <span class="eyebrow">HELLO, WORLD.</span>
+        <h2>欢迎来到边集</h2>
+        <p>一处开放的技术交流空间。保持好奇，认真表达，友善相待。</p>
+        <div class="local-badge">工程预览 · 本地数据</div>
+      </section>
+      <section class="panel node-panel">
+        <div class="panel-heading">
+          <h2>探索节点</h2>
+          <a href="/nodes" class="muted">
+            全部 ↗
+          </a>
+        </div>
+        <div class="node-links">
+          {nodes.map((node, i) => (
+            <a href={`/go/${node.slug}`}>
+              <span class="node-number">0{i + 1}</span>
+              <span>{node.name}</span>
+              <span class="muted">→</span>
+            </a>
+          ))}
+        </div>
+      </section>
+      <p class="aside-note">
+        Built at the edge.
+        <br />
+        Made for the conversation.
+      </p>
+    </aside>
+  </div>
+</Layout>
