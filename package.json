@@ -31,7 +31,8 @@
     "notices:write": "node scripts/third-party-notices.mjs --write",
     "check:notices": "node scripts/third-party-notices.mjs",
     "license:prepare": "node scripts/license/prepare.mjs",
-    "license:report": "node scripts/license/report.mjs"
+    "license:report": "node scripts/license/report.mjs",
+    "license:sources": "node scripts/license/verify-sources.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.2",

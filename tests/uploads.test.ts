@@ -358,13 +358,23 @@ it('atomically enforces storage quota and limits upload attempts', async () => {
   await env.DB.prepare(
     "DELETE FROM uploads WHERE object_key LIKE 'quota/%'",
   ).run();
-  for (let i = 0; i < 10; i++)
-    expect(
-      (await send('/uploads/image', 'POST', new Uint8Array([1]))).status,
-    ).toBe(400);
-  const limited = await upload();
-  expect(limited.status).toBe(429);
-  expect(Number(limited.headers.get('Retry-After'))).toBeGreaterThan(0);
+  // Keep the quota assertion in one fixed minute even when CI crosses :00.
+  const now = Date.now();
+  const clock = vi.spyOn(Date, 'now').mockReturnValue(now);
+  try {
+    for (let i = 0; i < 10; i++)
+      expect(
+        (await send('/uploads/image', 'POST', new Uint8Array([1]))).status,
+      ).toBe(400);
+    const limited = await upload();
+    expect(limited.status).toBe(429);
+    expect(Number(limited.headers.get('Retry-After'))).toBeGreaterThan(0);
+    // The existing fixed-window policy permits requests in the next minute.
+    clock.mockReturnValue((Math.floor(now / 60000) + 1) * 60000);
+    expect((await upload()).status).toBe(201);
+  } finally {
+    clock.mockRestore();
+  }
 });
 it('keeps failed cleanup pending and private, then allows retry after a normal delete failure', async () => {
   const original = env.UPLOADS;

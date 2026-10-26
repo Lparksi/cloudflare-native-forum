@@ -126,6 +126,9 @@ describe('NOTICE platform handling', () => {
   const notices = resolve('scripts/third-party-notices.mjs');
   function runScenario(platform: boolean, tamper = false) {
     const directory = mkdtempSync(join(tmpdir(), 'forum-notice-test-'));
+    mkdirSync(join(directory, 'docs/license'), { recursive: true });
+    writeFileSync(join(directory, 'docs/license/sources.json'), '[]');
+    writeFileSync(join(directory, 'pnpm-lock.yaml'), '');
     const packagePath = join(directory, 'node_modules/example');
     const extraPath = join(directory, 'node_modules/extra');
     for (const path of [

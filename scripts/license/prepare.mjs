@@ -1,3 +1,4 @@
+import { sources } from './sources.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import {
@@ -229,6 +230,11 @@ assert.equal(
 const coverage = {
   installedPackages: records.length,
   installed: records.map((record) => record.key),
+  supplementalSourceReview: sources().map(({ key, status, reason }) => ({
+    key,
+    status,
+    reason,
+  })),
   missingLicenseTexts: records
     .filter((record) => !record.texts.length)
     .map((record) => record.key),

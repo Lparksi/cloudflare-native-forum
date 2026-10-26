@@ -1,7 +1,9 @@
+import { verifyWebpSources } from './license/sources.mjs';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+verifyWebpSources();
 // Vendored runtime binary is outside the npm dependency tree; keep its provenance checked.
 assert.equal(
   createHash('sha256')

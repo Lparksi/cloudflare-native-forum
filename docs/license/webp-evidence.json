@@ -1,0 +1,40 @@
+{
+  "status": "pending-build-provenance",
+  "files": [
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/playwright/v1.64.1/packages/utils/webp/webp_codec.wasm",
+      "sha256": "164cd9583a3e4d081f767d3b41ff0a730443dc7535fcc5caff83561463384b79",
+      "local": "src/vendor/webp/codec.wasm"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/playwright/v1.64.1/packages/utils/webp/webp_codec.LICENSE",
+      "sha256": "995c7ee35aceb7666829b7a501ca89c0864e12b493c1174b155774ab1e03d831",
+      "local": "src/vendor/webp/LICENSE.libwebp-emscripten"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/microsoft/playwright/v1.64.1/utils/libwebp-wasm/build.sh",
+      "sha256": "247f13d88347ac4fb8dd7b8ee43880503d5e35d4f1ff483c2ced282c2c281972"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/webmproject/libwebp/3757b8afeb54e305eaef18502812a9a88b7ed662/COPYING",
+      "sha256": "5aec868f669e384a22372a4e8a1a6cd7d44c64cd451f960ca69cc170d1e13acf",
+      "verbatimInPreservedNotice": true
+    },
+    {
+      "url": "https://raw.githubusercontent.com/webmproject/libwebp/3757b8afeb54e305eaef18502812a9a88b7ed662/PATENTS",
+      "sha256": "cc3273e0694ea5896145e0677699b53471b03ea43021ddc50e7923fbb9f5023c",
+      "verbatimInPreservedNotice": true
+    },
+    {
+      "url": "https://raw.githubusercontent.com/emscripten-core/emscripten/6.0.2/LICENSE",
+      "sha256": "620a78084fc7ca97c0b5dea9abf891f3ffcadfdbf305276f099c9c4e12fc1d86",
+      "verbatimInPreservedNotice": true
+    }
+  ],
+  "scope": "Worker runtime WASM; browser uses Canvas.",
+  "limitations": [
+    "Official Playwright artifact bytes match; this does not prove exact Emscripten toolchain or linked component closure.",
+    "Build script tests 6.0.2 but activates latest; no WASM custom sections identify the producer.",
+    "unknown at preserved notice line 170 is a third-party-directory instruction, not a separate license grant."
+  ]
+}
